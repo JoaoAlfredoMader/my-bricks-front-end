@@ -9,12 +9,12 @@ export function AppNav({ className }: { className?: string }) {
   return (
     <nav aria-label="Seções" className={className}>
       <ul className="flex gap-1 lg:flex-col">
-        {NAV_ITEMS.map(({ label, icon: Icon, to }) => (
+        {NAV_ITEMS.map(({ label, icon: Icon, to, exact = false }) => (
           <li key={label}>
             {to ? (
               <Link
                 to={to}
-                activeOptions={{ exact: true }}
+                activeOptions={{ exact, includeSearch: false }}
                 className={cn(ITEM, 'text-muted-foreground hover:bg-muted hover:text-foreground')}
                 activeProps={{ className: 'bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground' }}
               >

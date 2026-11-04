@@ -1,14 +1,8 @@
+import { Link } from '@tanstack/react-router'
+import { StatusBadge } from '@/features/properties/components/status-badge'
+import { IRR_UNAVAILABLE, USAGE_LABEL } from '@/features/properties/lib/labels'
 import { formatRate, formatWholeMoney } from '@/lib/format'
 import type { PropertyKpis } from '../api/portfolio-kpis'
-import { STATUS, USAGE_LABEL } from '../lib/labels'
-
-const IRR_UNAVAILABLE: Record<NonNullable<PropertyKpis['irr']['unavailableReason']>, string> = {
-  no_acquisition_date: 'Sem data de aquisição',
-  no_acquisition_cost: 'Sem custo de aquisição',
-  no_estimated_value: 'Sem valor estimado',
-  period_too_short: 'Período curto demais',
-  no_solution: 'Sem solução para os fluxos',
-}
 
 /** Highest value first; properties without a value go last. */
 function byValue(a: PropertyKpis, b: PropertyKpis) {
@@ -36,23 +30,25 @@ export function PropertiesTable({ properties }: { properties: PropertyKpis[] }) 
         </thead>
         <tbody>
           {[...properties].sort(byValue).map((property) => {
-            const status = STATUS[property.status]
             const irrReason = property.irr.unavailableReason
             return (
               <tr key={property.propertyId} className="border-b last:border-b-0 hover:bg-muted/50">
                 <th scope="row" className="py-3 pr-4 pl-5 text-left font-medium sm:pl-6">
-                  {property.name}
+                  <Link
+                    to="/app/imoveis/$propertyId"
+                    params={{ propertyId: property.propertyId }}
+                    className="rounded-sm hover:underline hover:underline-offset-4"
+                  >
+                    {property.name}
+                  </Link>
                   <span className="block text-xs font-normal text-muted-foreground">
                     {USAGE_LABEL[property.usageType]}
                     {property.ownershipPercentage < 100 && ` · ${property.ownershipPercentage}% seu`}
                     {!property.includedInPortfolio && ' · fora do rendimento'}
                   </span>
                 </th>
-                <td className="px-4 py-3 whitespace-nowrap">
-                  <span className="inline-flex items-center gap-2">
-                    <span className="size-2 rounded-full" style={{ background: status.color }} aria-hidden="true" />
-                    {status.label}
-                  </span>
+                <td className="px-4 py-3">
+                  <StatusBadge status={property.status} />
                 </td>
                 <td className={NUMERIC}>
                   {property.estimatedValueCents === null ? '—' : formatWholeMoney(property.estimatedValueCents)}
