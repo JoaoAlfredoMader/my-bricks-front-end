@@ -3,7 +3,7 @@ import type { ActiveOrganization } from '@/features/auth/api/organization'
 import { formatCompactMoney, formatDate, formatRate, formatTimeUntil } from '@/lib/format'
 import type { PortfolioKpis } from '../api/portfolio-kpis'
 import { PropertiesTable } from './properties-table'
-import { StatTile } from './stat-tile'
+import { StatTile } from '@/components/stat-tile'
 import { StatusSplit } from './status-split'
 
 interface DashboardPageProps {

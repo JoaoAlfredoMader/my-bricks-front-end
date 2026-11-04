@@ -1,5 +1,5 @@
+import { STATUS, STATUS_ORDER } from '@/features/properties/lib/labels'
 import type { PortfolioKpis } from '../api/portfolio-kpis'
-import { STATUS, STATUS_ORDER } from '../lib/labels'
 
 const share = new Intl.NumberFormat('pt-BR', { style: 'percent', maximumFractionDigits: 0 })
 
