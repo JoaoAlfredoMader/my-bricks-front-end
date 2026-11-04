@@ -26,6 +26,8 @@ export default defineConfig(({ mode }) => ({
   },
   test: {
     environment: 'jsdom',
+    // jsdom's default origin is localhost:3000, where the real API runs in development.
+    environmentOptions: { jsdom: { url: 'http://mybricks.test' } },
     globals: true,
     setupFiles: ['./src/test/setup.ts'],
     css: false,
