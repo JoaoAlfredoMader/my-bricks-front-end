@@ -1,6 +1,7 @@
 import { Link } from '@tanstack/react-router'
-import { ArrowLeft, MapPin } from 'lucide-react'
+import { ArrowLeft, MapPin, Pencil } from 'lucide-react'
 import { StatTile } from '@/components/stat-tile'
+import { buttonVariants } from '@/components/ui/button'
 import {
   formatAnnualPercent,
   formatArea,
@@ -84,9 +85,19 @@ export function PropertyDetailPage({ property, kpis, catalog, clientName }: Prop
             </p>
           )}
         </div>
-        <span className="rounded-full border bg-card px-3.5 py-1.5 text-sm">
-          <StatusBadge status={property.status} />
-        </span>
+        <div className="flex items-center gap-2">
+          <span className="rounded-full border bg-card px-3.5 py-2 text-sm">
+            <StatusBadge status={property.status} />
+          </span>
+          <Link
+            to="/app/imoveis/$propertyId/editar"
+            params={{ propertyId: property.id }}
+            className={buttonVariants({ variant: 'outline', size: 'lg', className: 'h-10 px-5' })}
+          >
+            <Pencil aria-hidden="true" />
+            Editar
+          </Link>
+        </div>
       </header>
 
       <section aria-label="Indicadores do imóvel" className="mt-6">

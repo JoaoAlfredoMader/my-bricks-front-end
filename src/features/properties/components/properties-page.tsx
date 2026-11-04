@@ -1,9 +1,9 @@
 import { useQuery } from '@tanstack/react-query'
 import { Link } from '@tanstack/react-router'
 import { cn } from 'cn'
-import { Search } from 'lucide-react'
+import { Plus, Search } from 'lucide-react'
 import { useEffect, useState } from 'react'
-import { Button } from '@/components/ui/button'
+import { Button, buttonVariants } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { formatArea, formatWholeMoney } from '@/lib/format'
 import { type PropertyFilters, propertiesQueryOptions, propertyCatalogQueryOptions } from '../api/queries'
@@ -45,11 +45,17 @@ export function PropertiesPage({ filters, onFiltersChange }: PropertiesPageProps
 
   return (
     <main className="mx-auto max-w-6xl px-4 py-6 sm:px-8 sm:py-10">
-      <header>
-        <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">Imóveis</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          {data ? `${data.total} ${data.total === 1 ? 'imóvel' : 'imóveis'}${filtered ? ' com estes filtros' : ''}` : ' '}
-        </p>
+      <header className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">Imóveis</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            {data ? `${data.total} ${data.total === 1 ? 'imóvel' : 'imóveis'}${filtered ? ' com estes filtros' : ''}` : ' '}
+          </p>
+        </div>
+        <Link to="/app/imoveis/novo" className={buttonVariants({ size: 'lg', className: 'h-10 px-5' })}>
+          <Plus aria-hidden="true" />
+          Novo imóvel
+        </Link>
       </header>
 
       <div role="search" className="mt-6 grid gap-3 sm:grid-cols-[minmax(0,1fr)_12rem_12rem]">

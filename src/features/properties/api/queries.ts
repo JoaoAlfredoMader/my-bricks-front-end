@@ -52,6 +52,28 @@ export const propertyCatalogQueryOptions = queryOptions({
   staleTime: Infinity,
 })
 
+/** Municipalities whose name starts like `search`, for the address. */
+export function citiesQueryOptions(search: string) {
+  return queryOptions({
+    queryKey: ['lookups', 'cities', search],
+    queryFn: () => unwrap(api.GET('/api/lookups/cities', { params: { query: { search, limit: 8 } } })),
+    enabled: search.length >= 2,
+    staleTime: Infinity,
+    placeholderData: keepPreviousData,
+  })
+}
+
+/** Clients and agencies to pick from in the form (the first hundred, by name). */
+export const clientOptionsQueryOptions = queryOptions({
+  queryKey: ['clients', 'options'],
+  queryFn: () => unwrap(api.GET('/api/clients', { params: { query: { pageSize: 100 } } })),
+})
+
+export const agencyOptionsQueryOptions = queryOptions({
+  queryKey: ['agencies', 'options'],
+  queryFn: () => unwrap(api.GET('/api/agencies', { params: { query: { pageSize: 100 } } })),
+})
+
 export function clientQueryOptions(id: string) {
   return queryOptions({
     queryKey: ['clients', 'detail', id],

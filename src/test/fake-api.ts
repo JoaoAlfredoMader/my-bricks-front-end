@@ -2,6 +2,7 @@ import { vi } from 'vitest'
 import type { Session } from '@/features/auth/api/session'
 import type { PortfolioKpis, PropertyKpis } from '@/features/dashboard/api/portfolio-kpis'
 import type { Property, PropertyCatalog } from '@/features/properties/api/queries'
+import type { PropertyRequest as PropertyRequestBody } from '@/features/properties/lib/property-form'
 
 export function makeSession(overrides: Partial<Omit<Session, 'user'>> & { user?: Partial<Session['user']> } = {}): Session {
   const { user, ...rest } = overrides
@@ -134,17 +135,25 @@ export function makePropertyRecord(overrides: Partial<Property> = {}): Property 
 
 const CATALOG: PropertyCatalog = [
   { propertyType: 'residential', subtypes: [{ id: 1, name: 'Apartamento' }, { id: 2, name: 'Casa' }], usageTypes: ['rental', 'own_use'] },
+  { propertyType: 'land', subtypes: [], usageTypes: ['own_use', 'agricultural_lease'] },
   { propertyType: 'logistics', subtypes: [{ id: 9, name: 'Galpão logístico' }], usageTypes: ['rental'] },
 ]
 
 const UNAUTHENTICATED = { error: { code: 'UNAUTHENTICATED', message: 'Authentication required' } }
 const NOT_FOUND = { error: { code: 'NOT_FOUND', message: 'Not found' } }
 
+const CITIES = [
+  { ibgeCode: 3550308, name: 'São Paulo', state: 'SP' },
+  { ibgeCode: 3548500, name: 'Santos', state: 'SP' },
+  { ibgeCode: 3509502, name: 'Campinas', state: 'SP' },
+]
+
 interface FakeApiOptions {
   session?: Session | null
   kpis?: PortfolioKpis
   properties?: Property[]
   clients?: { id: string; name: string }[]
+  agencies?: { id: string; name: string }[]
   handlers?: Record<string, Handler>
 }
 
@@ -154,7 +163,14 @@ interface FakeApiOptions {
  * paged like the real list), and the endpoints given in `handlers` (keyed by "METHOD /path")
  * win over the defaults.
  */
-export function fakeApi({ session = null, kpis = makeKpis(), properties = [], clients = [], handlers = {} }: FakeApiOptions = {}) {
+export function fakeApi({
+  session = null,
+  kpis = makeKpis(),
+  properties = [],
+  clients = [],
+  agencies = [],
+  handlers = {},
+}: FakeApiOptions = {}) {
   const state = { session, kpis, properties }
   const calls: { method: string; path: string; query: URLSearchParams; body: unknown }[] = []
 
@@ -170,10 +186,50 @@ export function fakeApi({ session = null, kpis = makeKpis(), properties = [], cl
     return { items: matches.slice((page - 1) * pageSize, page * pageSize), page, pageSize, total: matches.length }
   }
 
-  /** Answers for paths with an id in them. */
-  function dynamic(method: string, pathname: string, query: URLSearchParams): Response | undefined {
+  /** A request body as the API would store it: the address gets its city's name back. */
+  function stored(body: unknown): Partial<Property> {
+    const { address, ...rest } = body as PropertyRequestBody
+    if (!address) return { ...rest, address: null } as Partial<Property>
+    const city = CITIES.find((c) => c.ibgeCode === address.cityId)
+    return {
+      ...rest,
+      address: {
+        cityId: address.cityId,
+        city: city?.name ?? '?',
+        state: city?.state ?? '?',
+        street: address.street,
+        number: address.number ?? null,
+        complement: address.complement ?? null,
+        neighborhood: address.neighborhood ?? null,
+        postalCode: address.postalCode ?? null,
+        latitude: null,
+        longitude: null,
+      },
+    } as Partial<Property>
+  }
+
+  /** Answers for lists and for paths with an id in them. */
+  function dynamic(method: string, pathname: string, query: URLSearchParams, body: unknown): Response | undefined {
+    if (method === 'POST' && pathname === '/api/properties') {
+      const created = makePropertyRecord(stored(body))
+      state.properties.push(created)
+      return json(created, 201)
+    }
+    const patched = /^\/api\/properties\/([^/]+)$/.exec(pathname)
+    if (method === 'PATCH' && patched) {
+      const index = state.properties.findIndex((p) => p.id === patched[1])
+      if (index < 0) return json(NOT_FOUND, 404)
+      state.properties[index] = { ...state.properties[index]!, ...stored(body) }
+      return json(state.properties[index])
+    }
     if (method !== 'GET') return undefined
     if (pathname === '/api/properties') return json(listProperties(query))
+    if (pathname === '/api/clients') return json({ items: clients, page: 1, pageSize: 100, total: clients.length })
+    if (pathname === '/api/agencies') return json({ items: agencies, page: 1, pageSize: 100, total: agencies.length })
+    if (pathname === '/api/lookups/cities') {
+      const search = (query.get('search') ?? '').toLowerCase()
+      return json(CITIES.filter((city) => city.name.toLowerCase().startsWith(search)))
+    }
     const property = /^\/api\/properties\/([^/]+)$/.exec(pathname)
     if (property) {
       const found = state.properties.find((p) => p.id === property[1])
@@ -220,7 +276,9 @@ export function fakeApi({ session = null, kpis = makeKpis(), properties = [], cl
 
     const handler = handlers[`${request.method} ${pathname}`] ?? defaults[`${request.method} ${pathname}`]
     if (handler) return handler(request)
-    const answer = state.session ? dynamic(request.method, pathname, searchParams) : undefined
+    const answer = state.session
+      ? dynamic(request.method, pathname, searchParams, text ? JSON.parse(text) : undefined)
+      : undefined
     if (answer) return answer
     return json({ error: { code: 'NOT_FOUND', message: `No fake for ${request.method} ${pathname}` } }, 404)
   })
