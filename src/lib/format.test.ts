@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
+  formatAnnualPercent,
+  formatArea,
   formatCompactMoney,
   formatDate,
   formatMoney,
@@ -28,6 +30,12 @@ describe('format', () => {
     expect(formatRate(0.065038)).toBe('6,5%')
     expect(formatRate(-0.008077)).toBe('-0,8%')
     expect(formatRate(null)).toBe('—')
+  })
+
+  it('formats areas and yearly percentages', () => {
+    expect(formatArea(2400)).toBe('2.400 m²')
+    expect(formatArea(62.5)).toBe('62,5 m²')
+    expect(formatAnnualPercent(9.5)).toBe('9,5% a.a.')
   })
 
   it('says how long until a moment', () => {

@@ -34,6 +34,18 @@ export function formatRate(fraction: number | null): string {
   return fraction === null ? EMPTY : percent.format(fraction)
 }
 
+const number = new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 2 })
+
+/** 2.400 m² */
+export function formatArea(squareMeters: number): string {
+  return `${number.format(squareMeters)} m²`
+}
+
+/** 9,5% a.a. from a rate the API sends in percent (financing), not as a fraction. */
+export function formatAnnualPercent(percentPerYear: number): string {
+  return `${number.format(percentPerYear)}% a.a.`
+}
+
 /** "em 23 horas", "em 40 minutos": how long until a moment, rounded down. */
 export function formatTimeUntil(moment: Date, now: Date = new Date()): string {
   const minutes = Math.floor((moment.getTime() - now.getTime()) / 60_000)
