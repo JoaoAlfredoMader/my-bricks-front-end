@@ -1,0 +1,44 @@
+import { describe, expect, it } from 'vitest'
+import {
+  formatCompactMoney,
+  formatDate,
+  formatMoney,
+  formatRate,
+  formatTimeUntil,
+  formatWholeMoney,
+} from './format'
+
+// Intl separates the currency sign with a no-break space.
+const plain = (value: string) => value.replace(/ /g, ' ')
+
+describe('format', () => {
+  it('turns cents into reais', () => {
+    expect(plain(formatMoney(123456))).toBe('R$ 1.234,56')
+    expect(plain(formatWholeMoney(68000000))).toBe('R$ 680.000')
+    expect(plain(formatWholeMoney(-420000))).toBe('-R$ 4.200')
+  })
+
+  it('abbreviates headline amounts', () => {
+    expect(plain(formatCompactMoney(657000000))).toBe('R$ 6,57 mi')
+    expect(plain(formatCompactMoney(38470000))).toBe('R$ 384,7 mil')
+    expect(plain(formatCompactMoney(32506000, { digits: 1 }))).toBe('R$ 325,1 mil')
+  })
+
+  it('shows fractions as percentages and a dash when there is no rate', () => {
+    expect(formatRate(0.065038)).toBe('6,5%')
+    expect(formatRate(-0.008077)).toBe('-0,8%')
+    expect(formatRate(null)).toBe('—')
+  })
+
+  it('says how long until a moment', () => {
+    const now = new Date('2026-11-04T12:00:00Z')
+    expect(formatTimeUntil(new Date('2026-11-05T11:59:00Z'), now)).toBe('em 23 horas')
+    expect(formatTimeUntil(new Date('2026-11-04T13:00:00Z'), now)).toBe('em 1 hora')
+    expect(formatTimeUntil(new Date('2026-11-04T12:40:00Z'), now)).toBe('em 40 minutos')
+    expect(formatTimeUntil(new Date('2026-11-04T11:00:00Z'), now)).toBe('em instantes')
+  })
+
+  it('reads a date as a calendar day', () => {
+    expect(formatDate('2026-11-04')).toBe('4 de novembro de 2026')
+  })
+})
