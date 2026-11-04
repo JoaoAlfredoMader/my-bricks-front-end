@@ -123,7 +123,13 @@ Each property name links to its page.
 - The form keeps what is typed as text and converts it only on submit (`src/lib/parse.ts`): `680.000,00` becomes 68000000 cents, `38,5` becomes 38.5 and `10/03/2022` becomes `2022-03-10`. Editing sends every field, with `null` for whatever was cleared, so turning the financing off removes it. Errors from the API land under their field when its path is known, with the rule translated to Portuguese; anything else shows at the top.
 - After saving, the property page opens and the list, the dashboard and the indicators are refetched.
 
-Photos, documents, the financing schedule and deleting a property are not on these screens yet.
+- **Photos** sit on the property page, cover first: *Adicionar fotos* sends several at once, one after the other in the order chosen (JPEG, PNG or WebP, up to 15 MB, 30 per property). Arrows move a photo, the star makes it the cover (`PUT …/photos/order` with the whole new order, shown at once and put back if the API refuses), and the bin removes it after a confirmation. Images load straight from `contentUrl`, authenticated by the session cookie.
+- **Documents** are listed below the details: an optional category, then *Enviar documento* (PDF, image, DOCX or XLSX, up to 15 MB); each can have its category changed in place, be downloaded (the API always serves it as an attachment) or be removed after a confirmation.
+- Files are checked here before they travel (type, size, emptiness), and the API's own refusals (`413`, `415`, the photo limit) are explained in Portuguese.
+- **Excluir** removes the property with everything attached to it, after a dialog that says so. The page is left before the cache is cleared, so nothing tries to show the deleted property again.
+- **While impersonating**, the delete buttons are not offered at all, since the API refuses every `DELETE` then.
+
+The financing schedule is not on these screens yet.
 
 Data colours follow the `dataviz` skill: the first four slots of its reference palette (blue, orange, aqua, yellow), validated on white with its script, always next to a text label. Money is formatted from integer cents and rates from fractions in `src/lib/format.ts`.
 
@@ -138,6 +144,8 @@ npm test
 Tests render the real route tree with a memory history (`src/test/render-route.tsx`). The router plugin is left out of the test config because the generated route tree is committed and the plugin's watcher keeps Vitest workers from starting.
 
 `src/test/fake-api.ts` stubs `fetch` with a small in-memory API: `/api/me`, the portfolio indicators, the active organization, the property list (searched, filtered and paged like the real one), each property, its indicators and clients answer from the fake state (`makeSession`, `makeKpis`, `makePropertyRecord`), and each test adds the Better Auth endpoints it needs. Both clients look `fetch` up on every call so the stub takes effect, and jsdom runs on `http://mybricks.test` so a test can never reach the real API on `localhost:3000`.
+
+Uploads are the one place tests do not go through the real request code: jsdom's `FormData` and `File` cannot be carried by Node's `Request`, so `property-files.test.tsx` replaces only the two upload calls with JSON describing the file. Everything around them (checks, queueing, order, screens, the fake API) runs as in the app; the multipart request itself was checked against the real API in the browser.
 
 ## Conventions
 
