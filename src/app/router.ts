@@ -1,10 +1,12 @@
 import type { QueryClient } from '@tanstack/react-query'
-import { createRouter } from '@tanstack/react-router'
+import { createRouter, type RouterHistory } from '@tanstack/react-router'
 import { routeTree } from '@/routeTree.gen'
 
-export function createAppRouter(queryClient: QueryClient) {
+/** `history` is for tests (memory history); the app uses the browser's. */
+export function createAppRouter(queryClient: QueryClient, history?: RouterHistory) {
   return createRouter({
     routeTree,
+    history,
     context: { queryClient },
     defaultPreload: 'intent',
     // TanStack Query owns the cache; the router always asks it.
