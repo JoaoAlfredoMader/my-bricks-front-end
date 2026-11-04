@@ -35,21 +35,16 @@ export function Hero({ scene, onToggleScene, onReadStory }: HeroProps) {
         </div>
       </header>
 
-      <div className="hero-teaser absolute inset-x-0 bottom-[calc(var(--frame-inset)+12px)] flex justify-center px-6 sm:bottom-(--frame-bottom) sm:translate-y-1/2">
-        <div className="flex max-w-3xl flex-col items-center gap-3 rounded-3xl bg-(--card) p-3 pl-6 text-(--ink) shadow-lg backdrop-blur-md sm:flex-row sm:gap-6 sm:rounded-full">
-          <p className="text-center text-pretty sm:text-left">
-            Uma carteira de imóveis inteira num só painel.{' '}
-            <span className="hidden sm:inline">Veja por que e como ele foi construído.</span>
-          </p>
-          <button
-            type="button"
-            onClick={onReadStory}
-            className="inline-flex h-11 shrink-0 items-center gap-2 rounded-full bg-(--ink) px-5 font-semibold text-(--paper)"
-          >
-            Ler a história
-            <ChevronDown aria-hidden="true" className="size-4" />
-          </button>
-        </div>
+      {/* Sits on the frame's bottom edge. */}
+      <div className="hero-more absolute inset-x-0 bottom-(--frame-bottom) flex translate-y-1/2 justify-center">
+        <button
+          type="button"
+          onClick={onReadStory}
+          className="inline-flex h-11 items-center gap-2 rounded-full bg-(--ink) pr-4 pl-6 font-semibold text-(--paper) shadow-lg"
+        >
+          Sobre
+          <ChevronDown aria-hidden="true" className="size-5" />
+        </button>
       </div>
     </section>
   )

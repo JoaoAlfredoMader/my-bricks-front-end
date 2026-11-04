@@ -1,3 +1,4 @@
+import '@fontsource-variable/archivo/standard.css'
 import '@fontsource-variable/bricolage-grotesque/standard.css'
 import '../landing.css'
 import { useRef } from 'react'

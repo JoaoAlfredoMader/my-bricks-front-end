@@ -32,7 +32,7 @@ describe('Landing page', () => {
     Element.prototype.scrollIntoView = scrollIntoView
     renderRoute('/')
 
-    await user.click(await screen.findByRole('button', { name: 'Ler a história' }))
+    await user.click(await screen.findByRole('button', { name: 'Sobre' }))
 
     expect(scrollIntoView).toHaveBeenCalledOnce()
     expect(scrollIntoView.mock.contexts[0]).toBe(document.getElementById('historia'))
