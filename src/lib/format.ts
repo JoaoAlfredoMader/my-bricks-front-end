@@ -55,6 +55,21 @@ export function formatTimeUntil(moment: Date, now: Date = new Date()): string {
   return hours === 1 ? 'em 1 hora' : `em ${hours} horas`
 }
 
+const megabytes = new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 1 })
+
+/** 840 KB, 2,4 MB */
+export function formatBytes(bytes: number): string {
+  if (bytes < 1024 * 1024) return `${Math.max(1, Math.round(bytes / 1024))} KB`
+  return `${megabytes.format(bytes / (1024 * 1024))} MB`
+}
+
+const shortDate = new Intl.DateTimeFormat('pt-BR', { day: 'numeric', month: 'short', year: 'numeric' })
+
+/** "4 de nov. de 2026" for an ISO timestamp, in the viewer's time zone. */
+export function formatTimestamp(iso: string): string {
+  return shortDate.format(new Date(iso))
+}
+
 /** 4 de novembro de 2026, read as a calendar day (no time zone shift). */
 export function formatDate(day: string): string {
   return longDate.format(new Date(`${day}T00:00:00Z`))

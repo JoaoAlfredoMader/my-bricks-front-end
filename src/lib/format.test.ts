@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   formatAnnualPercent,
   formatArea,
+  formatBytes,
   formatCompactMoney,
   formatDate,
   formatMoney,
@@ -36,6 +37,12 @@ describe('format', () => {
     expect(formatArea(2400)).toBe('2.400 m²')
     expect(formatArea(62.5)).toBe('62,5 m²')
     expect(formatAnnualPercent(9.5)).toBe('9,5% a.a.')
+  })
+
+  it('formats file sizes', () => {
+    expect(formatBytes(860_000)).toBe('840 KB')
+    expect(formatBytes(2_516_582)).toBe('2,4 MB')
+    expect(formatBytes(10)).toBe('1 KB')
   })
 
   it('says how long until a moment', () => {
