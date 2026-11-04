@@ -8,35 +8,12 @@
   --muted: #475a6c;
   --paper: #eef2ef;
   --card: rgb(255 255 255 / 0.9);
-  --frame: rgb(255 255 255 / 0.8);
+  --frame: rgb(255 255 255 / 0.7);
   --focus: #1f63c9;
 
-  --ground: #c9ccc4;
-  --curb: #e4e5df;
-  --wall: #d5d1ca;
-  --wall-light: #e6e3dd;
-  --slab: #f4f2ee;
-  --rail: rgb(140 184 204 / 0.55);
-  --glass: #6b95ab;
-  --glass-lit: #6b95ab;
-  --glint: rgb(255 255 255 / 0.35);
-  --brick: #9a5f4c;
-  --mortar: #bb8a78;
-  --frame-ink: #22313f;
-  --leaves: #527c58;
-  --leaves-light: #6b956e;
-  --trunk: #6a5345;
-  --lamp-pole: #3a4652;
-  --lamp-bulb: #a3adb5;
-  --skyline-far: #a3bdc8;
-  --skyline-near: #89a6b3;
-  --cloud: #ffffff;
-
-  /* Layout of the hero: frame, ground strip and building height. */
+  /* Layout of the hero frame. */
   --frame-inset: 12px;
   --frame-bottom: var(--frame-inset);
-  --ground-h: 150px;
-  --building-h: min(56svh, 112vw);
 
   font-family: 'Bricolage Grotesque Variable', ui-sans-serif, system-ui, sans-serif;
   color: var(--ink);
@@ -53,27 +30,6 @@
   --card: rgb(15 24 46 / 0.86);
   --frame: rgb(214 225 245 / 0.42);
   --focus: #9cc2ff;
-
-  --ground: #1c2333;
-  --curb: #293144;
-  --wall: #2a3243;
-  --wall-light: #333c4f;
-  --slab: #465068;
-  --rail: rgb(92 114 156 / 0.35);
-  --glass: #172038;
-  --glass-lit: #f6c770;
-  --glint: rgb(255 255 255 / 0);
-  --brick: #5a3c35;
-  --mortar: #6d4a41;
-  --frame-ink: #0a1121;
-  --leaves: #223d2d;
-  --leaves-light: #2b4b36;
-  --trunk: #2d2523;
-  --lamp-pole: #1a2130;
-  --lamp-bulb: #ffe2a6;
-  --skyline-far: #1a2747;
-  --skyline-near: #131c36;
-  --cloud: #2a3b62;
 }
 
 @media (min-width: 640px) {
@@ -81,8 +37,6 @@
     --frame-inset: 24px;
     /* Room under the frame for the teaser that sits on its bottom edge. */
     --frame-bottom: calc(var(--frame-inset) + 2.5rem);
-    --ground-h: max(110px, 13svh);
-    --building-h: min(60svh, 112vw);
   }
 }
 
@@ -93,48 +47,35 @@
 
 /* Hero layers --------------------------------------------------------------- */
 
-.scene-sky {
+.scene-photo {
+  position: absolute;
+  inset: 0;
+}
+
+.scene-photo img {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
-}
-
-.scene-building {
-  position: absolute;
-  left: 50%;
-  bottom: var(--ground-h);
-  height: var(--building-h);
-  width: auto;
-  translate: -50% 0;
-  overflow: visible;
-}
-
-.hero-ground {
-  position: absolute;
-  inset: auto 0 0;
-  height: var(--ground-h);
-  background: var(--ground);
-  border-top: 6px solid var(--curb);
-  transition:
-    background-color 900ms ease,
-    border-color 900ms ease;
+  object-fit: cover;
+  /* Keep the building and the sky above it when the viewport crops the render. */
+  object-position: 50% 35%;
 }
 
 .hero-title {
   position: absolute;
   inset-inline: 0;
-  /* The foot of the letters tucks behind the tower's roof. */
-  bottom: calc(var(--ground-h) + var(--building-h) * 0.91 - 0.14em);
+  /* Sits in the open sky above the roof. */
+  top: calc(var(--frame-inset) + 5.5rem);
   margin: 0;
   text-align: center;
-  font-size: clamp(4.25rem, 19vw, 15rem);
+  font-size: clamp(3.25rem, min(14vw, 16svh), 12rem);
   font-weight: 800;
   font-stretch: 82%;
   line-height: 0.82;
   letter-spacing: -0.045em;
-  color: var(--ink);
-  transition: color 900ms ease;
+  color: #fff;
+  text-shadow: 0 2px 30px rgb(10 20 40 / 0.25);
 }
 
 .hero-frame {
@@ -146,168 +87,75 @@
   pointer-events: none;
 }
 
-/* Colors of the illustration ------------------------------------------------ */
+/* Day to night ------------------------------------------------------------- */
 
-.scene-sky .sky-night,
-.scene-sky .stars,
-.scene-sky .skyline-lights rect,
-.scene-building .lamp-glow {
+/* Night falls from the top of the sky down to the street. */
+.scene-photo-night {
+  clip-path: inset(0 0 100% 0);
+  filter: brightness(0.55) saturate(0.7);
+  transition:
+    clip-path 1600ms cubic-bezier(0.65, 0, 0.35, 1),
+    filter 900ms ease 0ms;
+}
+
+/* ...and the lights come on once it is dark. */
+.landing[data-scene='night'] .scene-photo-night {
+  clip-path: inset(0);
+  filter: none;
+  transition:
+    clip-path 1600ms cubic-bezier(0.65, 0, 0.35, 1),
+    filter 900ms ease 1300ms;
+}
+
+.twinkles {
+  position: absolute;
+  inset: 0;
   opacity: 0;
-  transition: opacity 1200ms ease;
+  transition: opacity 800ms ease;
 }
 
-.landing[data-scene='night'] .sky-night,
-.landing[data-scene='night'] .stars,
-.landing[data-scene='night'] .lamp-glow {
+.landing[data-scene='night'] .twinkles {
   opacity: 1;
+  transition-delay: 1400ms;
 }
 
-.landing[data-scene='night'] .skyline-lights rect {
-  opacity: 0.8;
-}
-
-.skyline-lights rect {
-  fill: #f2c46d;
-}
-
-.skyline-far rect,
-.skyline-near rect,
-.cloud ellipse {
-  transition: fill 1200ms ease;
-}
-
-.skyline-far rect {
-  fill: var(--skyline-far);
-}
-
-.skyline-near rect {
-  fill: var(--skyline-near);
-}
-
-.cloud ellipse {
-  fill: var(--cloud);
-  opacity: 0.85;
-}
-
-.star {
-  fill: #f4f7ff;
-  animation: twinkle 3.6s ease-in-out infinite alternate;
+.twinkles span {
+  position: absolute;
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: #f4f7ff;
+  box-shadow: 0 0 6px 1px rgb(220 230 255 / 0.7);
+  animation: twinkle 3.2s ease-in-out infinite alternate;
   animation-play-state: paused;
 }
 
-.landing[data-scene='night'] .star {
+.landing[data-scene='night'] .twinkles span {
   animation-play-state: running;
-}
-
-.sun,
-.moon {
-  transition:
-    transform 1400ms cubic-bezier(0.55, 0, 0.25, 1),
-    opacity 1000ms ease;
-}
-
-.moon {
-  transform: translateY(420px);
-  opacity: 0;
-}
-
-.landing[data-scene='night'] .sun {
-  transform: translateY(520px);
-  opacity: 0;
-}
-
-.landing[data-scene='night'] .moon {
-  transform: none;
-  opacity: 1;
-}
-
-.clouds {
-  animation: drift 70s ease-in-out infinite alternate;
-}
-
-.scene-building rect,
-.scene-building circle,
-.scene-building path {
-  transition: fill 900ms ease;
-}
-
-.scene-building .wall {
-  fill: var(--wall);
-}
-
-.scene-building .wall-light {
-  fill: var(--wall-light);
-}
-
-.scene-building .slab {
-  fill: var(--slab);
-}
-
-.scene-building .rail {
-  fill: var(--rail);
-}
-
-.scene-building .window {
-  fill: var(--glass);
-}
-
-.landing[data-scene='night'] .window-lit {
-  fill: var(--glass-lit);
-  /* Lights come on one by one. */
-  transition-delay: var(--delay);
-}
-
-.scene-building .glint {
-  fill: var(--glint);
-}
-
-.scene-building .brick {
-  fill: var(--brick);
-}
-
-.scene-building .mortar {
-  fill: none;
-  stroke: var(--mortar);
-  stroke-width: 1.5;
-  transition: stroke 900ms ease;
-}
-
-.scene-building .frame {
-  fill: var(--frame-ink);
-}
-
-.scene-building .leaves {
-  fill: var(--leaves);
-}
-
-.scene-building .leaves-light {
-  fill: var(--leaves-light);
-}
-
-.scene-building .trunk {
-  fill: var(--trunk);
-}
-
-.scene-building .lamp-pole {
-  fill: var(--lamp-pole);
-}
-
-.scene-building .lamp-bulb {
-  fill: var(--lamp-bulb);
 }
 
 /* The one orchestrated moment: the scene settles when the page opens. ------- */
 
+.scene-photo {
+  animation: settle 2400ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+
 .hero-frame {
-  animation: frame-in 900ms ease-out both;
+  animation: frame-in 900ms ease-out 200ms both;
 }
 
 .hero-title {
-  animation: title-rise 1100ms cubic-bezier(0.2, 0.7, 0.2, 1) 250ms both;
+  animation: title-rise 1100ms cubic-bezier(0.2, 0.7, 0.2, 1) 350ms both;
 }
 
 .hero-teaser {
   animation: teaser-in 700ms ease-out 900ms both;
+}
+
+@keyframes settle {
+  from {
+    scale: 1.06;
+  }
 }
 
 @keyframes frame-in {
@@ -320,7 +168,7 @@
 @keyframes title-rise {
   from {
     opacity: 0;
-    translate: 0 40%;
+    translate: 0 30%;
   }
 }
 
@@ -332,17 +180,8 @@
 }
 
 @keyframes twinkle {
-  to {
-    opacity: 0.3;
-  }
-}
-
-@keyframes drift {
   from {
-    translate: -40px 0;
-  }
-  to {
-    translate: 40px 0;
+    opacity: 0.15;
   }
 }
 

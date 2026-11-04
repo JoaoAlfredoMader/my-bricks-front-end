@@ -2,8 +2,7 @@ import { Link } from '@tanstack/react-router'
 import { ChevronDown } from 'lucide-react'
 import type { Scene } from '../hooks/use-scene'
 import { BrandMark } from './brand-mark'
-import { Building } from './scene/building'
-import { Sky } from './scene/sky'
+import { PhotoScene } from './scene/photo-scene'
 import { SceneToggle } from './scene-toggle'
 
 interface HeroProps {
@@ -15,17 +14,15 @@ interface HeroProps {
 export function Hero({ scene, onToggleScene, onReadStory }: HeroProps) {
   return (
     <section className="relative h-svh min-h-[34rem] overflow-hidden" aria-labelledby="hero-title">
-      <Sky />
+      <PhotoScene scene={scene} />
       <h1 id="hero-title" className="hero-title">
         MyBricks
       </h1>
-      <div className="hero-ground" />
-      <Building />
       <div className="hero-frame" />
 
       <header className="absolute inset-x-(--frame-inset) top-(--frame-inset) flex items-center justify-between p-3 sm:p-5">
-        <Link to="/" className="flex items-center gap-2 rounded-full text-(--ink)" aria-label="MyBricks, início">
-          <BrandMark className="size-9" />
+        <Link to="/" className="rounded-full text-white" aria-label="MyBricks, início">
+          <BrandMark className="size-9 drop-shadow" />
         </Link>
         <div className="flex items-center gap-2">
           <SceneToggle scene={scene} onToggle={onToggleScene} />
