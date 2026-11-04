@@ -56,7 +56,15 @@ src/
 
 ## Landing page
 
-The home page (`src/features/landing`) is an illustrated scene of a residential building drawn in SVG, with a day and a night version. The visitor's choice is remembered in `localStorage`; the first visit follows the system's color scheme. Motion is limited to the opening of the page and the switch between day and night, and it is turned off when the system asks for reduced motion.
+The home page (`src/features/landing`) opens on a full-screen render of a residential building, in a day and a night version taken from the same camera. Switching to night reveals the night render from the sky down, then the lights come up and a few stars twinkle. The visitor's choice is remembered in `localStorage`; the first visit follows the system's color scheme. Motion is limited to the opening of the page and the switch between day and night, and it is turned off when the system asks for reduced motion.
+
+To replace the renders (16:9, same size and framing, at least 2560 px wide, open sky above the roof for the title):
+
+```bash
+npm run hero:images -- path/to/day.png path/to/night.png
+```
+
+It writes `src/features/landing/assets/hero/<scene>-<width>.webp` in several widths (never upscaled) and a `manifest.json`; the page builds its `srcset` from them, so no code changes.
 
 The landing has its own palette and typeface (Bricolage Grotesque), scoped to `.landing`; the app screens will get their own theme.
 
