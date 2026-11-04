@@ -23,10 +23,19 @@ export const Route = createFileRoute('/_authenticated/app/imoveis/$propertyId/')
 
 export function PropertyDetailRoute() {
   const { propertyId } = Route.useParams()
+  const { session } = Route.useRouteContext()
   const property = useSuspenseQuery(propertyQueryOptions(propertyId)).data
   const kpis = useSuspenseQuery(propertyKpisQueryOptions(propertyId)).data
   const catalog = useQuery(propertyCatalogQueryOptions).data
   const client = useQuery({ ...clientQueryOptions(property.clientId ?? ''), enabled: property.clientId !== null }).data
 
-  return <PropertyDetailPage property={property} kpis={kpis} catalog={catalog} clientName={client?.name} />
+  return (
+    <PropertyDetailPage
+      property={property}
+      kpis={kpis}
+      catalog={catalog}
+      clientName={client?.name}
+      canDelete={session.impersonatedById === null}
+    />
+  )
 }

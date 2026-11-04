@@ -1,6 +1,7 @@
 import { vi } from 'vitest'
 import type { Session } from '@/features/auth/api/session'
 import type { PortfolioKpis, PropertyKpis } from '@/features/dashboard/api/portfolio-kpis'
+import type { Photo, PropertyDocument } from '@/features/properties/api/files'
 import type { Property, PropertyCatalog } from '@/features/properties/api/queries'
 import type { PropertyRequest as PropertyRequestBody } from '@/features/properties/lib/property-form'
 
@@ -154,6 +155,9 @@ interface FakeApiOptions {
   properties?: Property[]
   clients?: { id: string; name: string }[]
   agencies?: { id: string; name: string }[]
+  /** By property id. */
+  photos?: Record<string, Photo[]>
+  documents?: Record<string, PropertyDocument[]>
   handlers?: Record<string, Handler>
 }
 
@@ -169,10 +173,55 @@ export function fakeApi({
   properties = [],
   clients = [],
   agencies = [],
+  photos = {},
+  documents = {},
   handlers = {},
 }: FakeApiOptions = {}) {
-  const state = { session, kpis, properties }
+  const state = { session, kpis, properties, photos, documents }
   const calls: { method: string; path: string; query: URLSearchParams; body: unknown }[] = []
+  let fileSeq = 0
+
+  /** Photos and documents of a property, kept in `state.photos` / `state.documents` by property id. */
+  function files(method: string, pathname: string, body: unknown): Response | undefined {
+    const match = /^\/api\/properties\/([^/]+)\/(photos|documents)(?:\/([^/]+))?$/.exec(pathname)
+    if (!match) return undefined
+    const [, propertyId, kind, rest] = match as unknown as [string, string, 'photos' | 'documents', string | undefined]
+    const list = (kind === 'photos' ? state.photos : state.documents) as Record<string, (Photo | PropertyDocument)[]>
+    const current = list[propertyId!] ?? []
+
+    if (method === 'GET' && !rest) return json(current)
+    if (method === 'POST' && !rest) {
+      const { file, category } = body as { file: File; category?: string }
+      fileSeq += 1
+      const id = `file-${fileSeq}`
+      const base = {
+        id,
+        propertyId: propertyId!,
+        fileName: file.name,
+        mimeType: file.type,
+        sizeBytes: file.size,
+        contentUrl: `${pathname}/${id}/content`,
+        createdAt: '2026-11-04T12:00:00.000Z',
+      }
+      const created = kind === 'photos' ? { ...base, position: current.length } : { ...base, category: category ?? null }
+      list[propertyId!] = [...current, created as Photo & PropertyDocument]
+      return json(created, 201)
+    }
+    if (method === 'PUT' && rest === 'order') {
+      const { photoIds } = body as { photoIds: string[] }
+      list[propertyId!] = photoIds.map((id, position) => ({ ...current.find((p) => p.id === id)!, position }))
+      return json(list[propertyId!])
+    }
+    if (method === 'PATCH' && rest) {
+      list[propertyId!] = current.map((d) => (d.id === rest ? { ...d, ...(body as object) } : d))
+      return json(list[propertyId!]!.find((d) => d.id === rest))
+    }
+    if (method === 'DELETE' && rest) {
+      list[propertyId!] = current.filter((item) => item.id !== rest)
+      return new Response(null, { status: 204 })
+    }
+    return undefined
+  }
 
   function listProperties(query: URLSearchParams) {
     const page = Number(query.get('page') ?? 1)
@@ -222,6 +271,11 @@ export function fakeApi({
       state.properties[index] = { ...state.properties[index]!, ...stored(body) }
       return json(state.properties[index])
     }
+    if (method === 'DELETE' && patched) {
+      const before = state.properties.length
+      state.properties = state.properties.filter((p) => p.id !== patched[1])
+      return state.properties.length < before ? new Response(null, { status: 204 }) : json(NOT_FOUND, 404)
+    }
     if (method !== 'GET') return undefined
     if (pathname === '/api/properties') return json(listProperties(query))
     if (pathname === '/api/clients') return json({ items: clients, page: 1, pageSize: 100, total: clients.length })
@@ -268,16 +322,25 @@ export function fakeApi({
     },
   }
 
+  /** JSON bodies as objects; multipart uploads as their fields, with files as File. */
+  async function readBody(request: Request): Promise<unknown> {
+    if (request.headers.get('content-type')?.startsWith('multipart/form-data')) {
+      return Object.fromEntries((await request.clone().formData()).entries())
+    }
+    const text = await request.clone().text()
+    return text ? JSON.parse(text) : undefined
+  }
+
   const fetch = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
     const request = input instanceof Request ? input : new Request(new URL(String(input), location.origin), init)
     const { pathname, searchParams } = new URL(request.url)
-    const text = await request.clone().text()
-    calls.push({ method: request.method, path: pathname, query: searchParams, body: text ? JSON.parse(text) : undefined })
+    const body = await readBody(request)
+    calls.push({ method: request.method, path: pathname, query: searchParams, body })
 
     const handler = handlers[`${request.method} ${pathname}`] ?? defaults[`${request.method} ${pathname}`]
     if (handler) return handler(request)
     const answer = state.session
-      ? dynamic(request.method, pathname, searchParams, text ? JSON.parse(text) : undefined)
+      ? (files(request.method, pathname, body) ?? dynamic(request.method, pathname, searchParams, body))
       : undefined
     if (answer) return answer
     return json({ error: { code: 'NOT_FOUND', message: `No fake for ${request.method} ${pathname}` } }, 404)

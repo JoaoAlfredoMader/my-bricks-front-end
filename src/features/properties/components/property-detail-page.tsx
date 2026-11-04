@@ -1,7 +1,9 @@
 import { Link } from '@tanstack/react-router'
-import { ArrowLeft, MapPin, Pencil } from 'lucide-react'
+import { ArrowLeft, MapPin, Pencil, Trash2 } from 'lucide-react'
+import { ConfirmDialog } from '@/components/confirm-dialog'
 import { StatTile } from '@/components/stat-tile'
-import { buttonVariants } from '@/components/ui/button'
+import { Button, buttonVariants } from '@/components/ui/button'
+import { ApiError } from '@/lib/api/client'
 import {
   formatAnnualPercent,
   formatArea,
@@ -20,7 +22,10 @@ import {
   PROPERTY_TYPE_LABEL,
   USAGE_LABEL,
 } from '../lib/labels'
+import { useDeleteProperty } from '../hooks/use-property-mutations'
 import { DetailCard } from './detail-card'
+import { DocumentList } from './document-list'
+import { PhotoGallery } from './photo-gallery'
 import { StatusBadge } from './status-badge'
 
 const REVENUE_SOURCE: Record<PropertyKpis['revenueSource'], string> = {
@@ -35,6 +40,31 @@ interface PropertyDetailPageProps {
   kpis: PropertyKpis
   catalog: PropertyCatalog | undefined
   clientName: string | undefined
+  /** False while a platform admin impersonates: the API refuses every DELETE then. */
+  canDelete: boolean
+}
+
+function DeletePropertyButton({ property }: { property: Property }) {
+  const remove = useDeleteProperty(property.id)
+  return (
+    <ConfirmDialog
+      trigger={
+        <Button variant="ghost" size="lg" className="h-10 px-4 text-destructive hover:bg-destructive/10 hover:text-destructive">
+          <Trash2 aria-hidden="true" />
+          Excluir
+        </Button>
+      }
+      title={`Excluir ${property.name}?`}
+      description="O imóvel sai da carteira com tudo o que é dele: fotos, documentos, contratos, reservas, propostas e lançamentos. Não dá para desfazer."
+      confirmLabel="Excluir imóvel"
+      onConfirm={() => remove.mutateAsync()}
+      errorMessage={(error) =>
+        error instanceof ApiError && error.status === 403
+          ? 'Exclusões ficam bloqueadas enquanto você vê o sistema como outra pessoa.'
+          : 'Não foi possível excluir agora. Tente de novo.'
+      }
+    />
+  )
 }
 
 function count(value: number | null) {
@@ -48,7 +78,7 @@ function addressLines(address: NonNullable<Property['address']>) {
   return [line1, line2]
 }
 
-export function PropertyDetailPage({ property, kpis, catalog, clientName }: PropertyDetailPageProps) {
+export function PropertyDetailPage({ property, kpis, catalog, clientName, canDelete }: PropertyDetailPageProps) {
   const subtype = catalog
     ?.find((entry) => entry.propertyType === property.propertyType)
     ?.subtypes.find((s) => s.id === property.subtypeId)?.name
@@ -85,10 +115,11 @@ export function PropertyDetailPage({ property, kpis, catalog, clientName }: Prop
             </p>
           )}
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <span className="rounded-full border bg-card px-3.5 py-2 text-sm">
             <StatusBadge status={property.status} />
           </span>
+          {canDelete && <DeletePropertyButton property={property} />}
           <Link
             to="/app/imoveis/$propertyId/editar"
             params={{ propertyId: property.id }}
@@ -130,6 +161,10 @@ export function PropertyDetailPage({ property, kpis, catalog, clientName }: Prop
           />
         </dl>
       </section>
+
+      <div className="mt-4">
+        <PhotoGallery propertyId={property.id} propertyName={property.name} canDelete={canDelete} />
+      </div>
 
       <div className="mt-4 grid gap-4 lg:grid-cols-2">
         <DetailCard
@@ -230,6 +265,10 @@ export function PropertyDetailPage({ property, kpis, catalog, clientName }: Prop
             <p className="mt-3 text-sm whitespace-pre-line">{property.notes}</p>
           </DetailCard>
         )}
+      </div>
+
+      <div className="mt-4">
+        <DocumentList propertyId={property.id} canDelete={canDelete} />
       </div>
     </main>
   )
