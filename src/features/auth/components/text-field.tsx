@@ -24,7 +24,7 @@ export function TextField({ label, error, type = 'text', ...props }: TextFieldPr
           type={isPassword && revealed ? 'text' : type}
           aria-invalid={error ? true : undefined}
           aria-describedby={error ? errorId : undefined}
-          className={isPassword ? 'h-10 pr-10' : 'h-10'}
+          className={isPassword ? 'h-10 pr-11' : 'h-10'}
           {...props}
         />
         {isPassword && (
@@ -33,7 +33,7 @@ export function TextField({ label, error, type = 'text', ...props }: TextFieldPr
             onClick={() => setRevealed((value) => !value)}
             aria-label={revealed ? 'Esconder senha' : 'Mostrar senha'}
             aria-pressed={revealed}
-            className="absolute inset-y-0 right-0 flex w-10 items-center justify-center rounded-r-lg text-muted-foreground hover:text-foreground"
+            className="absolute inset-y-0 right-0 flex w-11 items-center justify-center rounded-r-full text-muted-foreground hover:text-foreground"
           >
             {revealed ? <EyeOff className="size-4" aria-hidden="true" /> : <Eye className="size-4" aria-hidden="true" />}
           </button>
