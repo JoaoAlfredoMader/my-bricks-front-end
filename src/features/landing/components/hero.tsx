@@ -1,7 +1,7 @@
 import { Link } from '@tanstack/react-router'
 import { ChevronDown } from 'lucide-react'
+import { BrandMark } from '@/components/brand-mark'
 import type { Scene } from '../hooks/use-scene'
-import { BrandMark } from './brand-mark'
 import { PhotoScene } from './scene/photo-scene'
 import { SceneToggle } from './scene-toggle'
 
