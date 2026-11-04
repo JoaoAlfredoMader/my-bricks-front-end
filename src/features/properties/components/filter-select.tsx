@@ -1,5 +1,4 @@
-import { ChevronDown } from 'lucide-react'
-import { useId } from 'react'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 
 interface FilterSelectProps<T extends string> {
   label: string
@@ -10,31 +9,25 @@ interface FilterSelectProps<T extends string> {
   onChange: (value: T | undefined) => void
 }
 
-/** A native select, labelled and pill-shaped, for one filter dimension. */
+/** One filter dimension, in the app's own pill-and-card menu rather than the browser's. */
 export function FilterSelect<T extends string>({ label, allLabel, value, options, onChange }: FilterSelectProps<T>) {
-  const id = useId()
+  const items: { value: T | null; label: string }[] = [
+    { value: null, label: allLabel },
+    ...(Object.entries(options) as [T, string][]).map(([key, text]) => ({ value: key, label: text })),
+  ]
+
   return (
-    <div className="relative">
-      <label htmlFor={id} className="sr-only">
-        {label}
-      </label>
-      <select
-        id={id}
-        value={value ?? ''}
-        onChange={(event) => onChange((event.target.value || undefined) as T | undefined)}
-        className="h-10 w-full appearance-none rounded-full border border-input bg-card pr-9 pl-4 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
-      >
-        <option value="">{allLabel}</option>
-        {(Object.entries(options) as [T, string][]).map(([key, text]) => (
-          <option key={key} value={key}>
-            {text}
-          </option>
+    <Select<T | null> items={items} value={value ?? null} onValueChange={(next) => onChange(next ?? undefined)}>
+      <SelectTrigger aria-label={label} className="w-full">
+        <SelectValue />
+      </SelectTrigger>
+      <SelectContent>
+        {items.map((item) => (
+          <SelectItem key={item.value ?? 'all'} value={item.value}>
+            {item.label}
+          </SelectItem>
         ))}
-      </select>
-      <ChevronDown
-        className="pointer-events-none absolute top-1/2 right-3 size-4 -translate-y-1/2 text-muted-foreground"
-        aria-hidden="true"
-      />
-    </div>
+      </SelectContent>
+    </Select>
   )
 }

@@ -65,11 +65,18 @@ describe('Properties list', () => {
     fakeApi({ session: makeSession(), properties: portfolio() })
     const { router } = renderRoute('/app/imoveis')
 
-    await user.selectOptions(await screen.findByLabelText('Tipo'), 'Logístico')
-    await waitFor(() => expect(rowNames()).toEqual(['Galpão Anhanguera']))
+    async function pick(filter: string, option: string) {
+      await user.click(screen.getByRole('combobox', { name: filter }))
+      await user.click(await screen.findByRole('option', { name: option }))
+    }
 
-    await user.selectOptions(screen.getByLabelText('Tipo'), 'Todos os tipos')
-    await user.selectOptions(screen.getByLabelText('Uso'), 'Uso próprio')
+    await screen.findByRole('table')
+    await pick('Tipo', 'Logístico')
+    await waitFor(() => expect(rowNames()).toEqual(['Galpão Anhanguera']))
+    expect(screen.getByRole('combobox', { name: 'Tipo' })).toHaveTextContent('Logístico')
+
+    await pick('Tipo', 'Todos os tipos')
+    await pick('Uso', 'Uso próprio')
     await waitFor(() => expect(rowNames()).toEqual(['Casa de Praia']))
     expect(router.state.location.search).toEqual({ usageType: 'own_use' })
   })
