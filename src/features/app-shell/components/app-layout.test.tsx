@@ -5,6 +5,17 @@ import { fakeApi, json, makeSession } from '@/test/fake-api'
 import { renderRoute } from '@/test/render-route'
 
 describe('App layout', () => {
+  it('names the organization and lists the sections', async () => {
+    fakeApi({ session: makeSession() })
+    renderRoute('/app')
+
+    expect(await screen.findByText('Portfólio de Ana')).toBeInTheDocument()
+    const nav = screen.getByRole('navigation', { name: 'Seções' })
+    expect(nav).toHaveTextContent('Painel')
+    expect(nav).toHaveTextContent('Imóveis')
+    expect(screen.getByRole('link', { name: 'Painel' })).toHaveAttribute('href', '/app')
+  })
+
   it('signs out and goes back to the landing page', async () => {
     const user = userEvent.setup()
     const api = fakeApi({
@@ -18,7 +29,9 @@ describe('App layout', () => {
     })
     const { router } = renderRoute('/app')
 
-    await user.click(await screen.findByRole('button', { name: 'Sair' }))
+    // One button for small screens and one in the sidebar; CSS shows only one.
+    const [signOut] = await screen.findAllByRole('button', { name: 'Sair' })
+    await user.click(signOut!)
 
     await waitFor(() => expect(router.state.location.pathname).toBe('/'))
     expect(api.callsTo('/api/auth/sign-out')).toHaveLength(1)
@@ -36,7 +49,7 @@ describe('App layout', () => {
     fakeApi({ session: makeSession() })
     renderRoute('/app')
 
-    await screen.findByRole('heading', { name: 'Olá, Ana' })
+    await screen.findByRole('heading', { level: 1, name: 'Painel' })
     expect(screen.queryByRole('status')).not.toBeInTheDocument()
   })
 })

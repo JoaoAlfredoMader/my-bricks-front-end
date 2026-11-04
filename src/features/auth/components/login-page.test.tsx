@@ -21,7 +21,7 @@ describe('Login page', () => {
     await user.type(screen.getByLabelText('Senha'), 'segredo123')
     await user.click(screen.getByRole('button', { name: 'Entrar' }))
 
-    expect(await screen.findByRole('heading', { name: 'Olá, Ana' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { level: 1, name: 'Painel' })).toBeInTheDocument()
     expect(router.state.location.pathname).toBe('/app')
     expect(api.callsTo('/api/auth/sign-in/email')[0]?.body).toMatchObject({
       email: 'ana@example.com',
@@ -82,7 +82,7 @@ describe('Login page', () => {
     await user.type(screen.getByLabelText('Senha'), '-e-longa')
     await user.click(screen.getByRole('button', { name: 'Criar conta' }))
 
-    expect(await screen.findByRole('heading', { name: 'Olá, Bruno' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { level: 1, name: 'Painel' })).toBeInTheDocument()
     expect(api.callsTo('/api/auth/sign-up/email')[0]?.body).toMatchObject({
       name: 'Bruno Lima',
       email: 'bruno@example.com',
@@ -104,7 +104,7 @@ describe('Login page', () => {
 
     await user.click(await screen.findByRole('button', { name: 'Entrar como convidado' }))
 
-    expect(await screen.findByRole('heading', { name: 'Bem-vindo à demonstração' })).toBeInTheDocument()
+    expect(await screen.findByText(/carteira de exemplo, só sua\. Ela será apagada em 23 horas/)).toBeInTheDocument()
   })
 
   it('goes back to the page that asked for a session', async () => {
@@ -133,7 +133,7 @@ describe('Login page', () => {
     fakeApi({ session: makeSession() })
     const { router } = renderRoute('/login')
 
-    expect(await screen.findByRole('heading', { name: 'Olá, Ana' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { level: 1, name: 'Painel' })).toBeInTheDocument()
     expect(router.state.location.pathname).toBe('/app')
   })
 })
