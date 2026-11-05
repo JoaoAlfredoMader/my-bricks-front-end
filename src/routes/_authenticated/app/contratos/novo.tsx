@@ -1,7 +1,7 @@
 import { useSuspenseQuery } from '@tanstack/react-query'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { z } from 'zod'
-import { propertyOptionsQueryOptions } from '@/features/contracts/api/queries'
+import { propertyOptionsQueryOptions } from '@/features/properties/api/queries'
 import { NewContractForm } from '@/features/contracts/components/contract-form'
 import { FormPage } from '@/components/form/form-page'
 import { useCreateContract } from '@/features/contracts/hooks/use-contract-mutations'

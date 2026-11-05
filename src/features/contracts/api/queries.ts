@@ -52,9 +52,3 @@ export function activeContractQueryOptions(propertyId: string) {
     enabled: propertyId !== '',
   })
 }
-
-/** The properties to choose from in a new contract (the first hundred, by name). */
-export const propertyOptionsQueryOptions = queryOptions({
-  queryKey: ['properties', 'options'],
-  queryFn: () => unwrap(api.GET('/api/properties', { params: { query: { pageSize: 100 } } })),
-})

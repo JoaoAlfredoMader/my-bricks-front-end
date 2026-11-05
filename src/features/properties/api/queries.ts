@@ -58,6 +58,12 @@ export function financingScheduleQueryOptions(id: string) {
   })
 }
 
+/** The properties to choose from in another record's form (the first hundred, by name). */
+export const propertyOptionsQueryOptions = queryOptions({
+  queryKey: ['properties', 'options'],
+  queryFn: () => unwrap(api.GET('/api/properties', { params: { query: { pageSize: 100 } } })),
+})
+
 /** Property types with their subtypes; it changes with a deploy, not with use. */
 export const propertyCatalogQueryOptions = queryOptions({
   queryKey: ['lookups', 'property-catalog'],
