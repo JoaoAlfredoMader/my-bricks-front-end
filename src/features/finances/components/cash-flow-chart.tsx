@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState } from 'react'
+import { useState } from 'react'
 import { formatCompactMoney, formatMoney } from '@/lib/format'
+import { useElementWidth } from '@/lib/use-element-width'
 import type { CashFlow, CashFlowMonth } from '../api/queries'
 import { columnPath, monthLong, monthShort, niceScale, SERIES, yFor } from '../lib/chart'
 
@@ -11,20 +12,6 @@ const AXIS = 40
 const HEIGHT = TOP + PLOT + AXIS
 const MAX_BAR = 24
 const TOOLTIP_WIDTH = 232
-
-/** The width of the box the chart sits in, followed as the window or the layout changes. */
-function useWidth(initial = 720) {
-  const ref = useRef<HTMLDivElement>(null)
-  const [width, setWidth] = useState(initial)
-  useEffect(() => {
-    const element = ref.current
-    if (!element || typeof ResizeObserver === 'undefined') return
-    const observer = new ResizeObserver(([entry]) => entry && setWidth(Math.round(entry.contentRect.width)))
-    observer.observe(element)
-    return () => observer.disconnect()
-  }, [])
-  return { ref, width }
-}
 
 /** What the screen reader says for one month: the same figures the tooltip shows. */
 function describeMonth(month: CashFlowMonth) {
@@ -107,7 +94,7 @@ export function Legend() {
  * zero. Hovering or focusing a month shows every series; the same figures are in the table view.
  */
 export function CashFlowChart({ data }: { data: CashFlow }) {
-  const { ref, width } = useWidth()
+  const { ref, width } = useElementWidth()
   const [active, setActive] = useState<number | null>(null)
 
   const months = data.months
