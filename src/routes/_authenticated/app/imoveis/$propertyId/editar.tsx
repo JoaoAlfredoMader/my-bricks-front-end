@@ -1,11 +1,7 @@
 import { useSuspenseQuery } from '@tanstack/react-query'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
-import {
-  agencyOptionsQueryOptions,
-  clientOptionsQueryOptions,
-  propertyCatalogQueryOptions,
-  propertyQueryOptions,
-} from '@/features/properties/api/queries'
+import { agencyOptionsQueryOptions, clientOptionsQueryOptions } from '@/features/clients/api/queries'
+import { propertyCatalogQueryOptions, propertyQueryOptions } from '@/features/properties/api/queries'
 import { PropertyFormPage } from '@/features/properties/components/property-form-page'
 import { PropertyNotFound } from '@/features/properties/components/property-not-found'
 import { useUpdateProperty } from '@/features/properties/hooks/use-property-mutations'

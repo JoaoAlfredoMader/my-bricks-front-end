@@ -76,20 +76,3 @@ export function citiesQueryOptions(search: string) {
   })
 }
 
-/** Clients and agencies to pick from in the form (the first hundred, by name). */
-export const clientOptionsQueryOptions = queryOptions({
-  queryKey: ['clients', 'options'],
-  queryFn: () => unwrap(api.GET('/api/clients', { params: { query: { pageSize: 100 } } })),
-})
-
-export const agencyOptionsQueryOptions = queryOptions({
-  queryKey: ['agencies', 'options'],
-  queryFn: () => unwrap(api.GET('/api/agencies', { params: { query: { pageSize: 100 } } })),
-})
-
-export function clientQueryOptions(id: string) {
-  return queryOptions({
-    queryKey: ['clients', 'detail', id],
-    queryFn: () => unwrap(api.GET('/api/clients/{id}', { params: { path: { id } } })),
-  })
-}

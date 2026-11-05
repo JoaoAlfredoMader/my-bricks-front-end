@@ -1,7 +1,7 @@
 import { useQuery, useSuspenseQuery } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
+import { clientQueryOptions } from '@/features/clients/api/queries'
 import {
-  clientQueryOptions,
   propertyCatalogQueryOptions,
   propertyKpisQueryOptions,
   propertyQueryOptions,
