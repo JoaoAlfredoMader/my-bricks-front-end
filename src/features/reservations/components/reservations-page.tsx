@@ -9,6 +9,7 @@ import { formatMoney } from '@/lib/format'
 import { type ReservationFilters, reservationsQueryOptions, shortStayPropertiesQueryOptions } from '../api/queries'
 import { RESERVATION_STATUS_LABEL, stayPeriod } from '../lib/labels'
 import { ReservationStatusBadge } from './reservation-status-badge'
+import { ReservationViewTabs } from './reservation-view-tabs'
 
 interface ReservationsPageProps {
   filters: ReservationFilters
@@ -44,7 +45,9 @@ export function ReservationsPage({ filters, onFiltersChange }: ReservationsPageP
         </Link>
       </header>
 
-      <div role="search" className="mt-6 flex flex-wrap items-center gap-3">
+      <ReservationViewTabs />
+
+      <div role="search" className="mt-4 flex flex-wrap items-center gap-3">
         <div className="w-full sm:w-52">
           <FilterSelect
             label="Situação"

@@ -24,6 +24,7 @@ import { Route as AuthenticatedAppFinancasNovoRouteImport } from './routes/_auth
 import { Route as AuthenticatedAppImoveisIndexRouteImport } from './routes/_authenticated/app/imoveis/index'
 import { Route as AuthenticatedAppImoveisNovoRouteImport } from './routes/_authenticated/app/imoveis/novo'
 import { Route as AuthenticatedAppReservasIndexRouteImport } from './routes/_authenticated/app/reservas/index'
+import { Route as AuthenticatedAppReservasCalendarioRouteImport } from './routes/_authenticated/app/reservas/calendario'
 import { Route as AuthenticatedAppReservasNovaRouteImport } from './routes/_authenticated/app/reservas/nova'
 import { Route as AuthenticatedAppClientesClientIdIndexRouteImport } from './routes/_authenticated/app/clientes/$clientId/index'
 import { Route as AuthenticatedAppClientesClientIdEditarRouteImport } from './routes/_authenticated/app/clientes/$clientId/editar'
@@ -120,6 +121,12 @@ const AuthenticatedAppReservasIndexRoute =
     path: '/app/reservas/',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
+const AuthenticatedAppReservasCalendarioRoute =
+  AuthenticatedAppReservasCalendarioRouteImport.update({
+    id: '/app/reservas/calendario',
+    path: '/app/reservas/calendario',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 const AuthenticatedAppReservasNovaRoute =
   AuthenticatedAppReservasNovaRouteImport.update({
     id: '/app/reservas/nova',
@@ -191,6 +198,7 @@ export interface FileRoutesByFullPath {
   '/app/contratos/novo': typeof AuthenticatedAppContratosNovoRoute
   '/app/financas/novo': typeof AuthenticatedAppFinancasNovoRoute
   '/app/imoveis/novo': typeof AuthenticatedAppImoveisNovoRoute
+  '/app/reservas/calendario': typeof AuthenticatedAppReservasCalendarioRoute
   '/app/reservas/nova': typeof AuthenticatedAppReservasNovaRoute
   '/app/clientes/': typeof AuthenticatedAppClientesIndexRoute
   '/app/contratos/': typeof AuthenticatedAppContratosIndexRoute
@@ -217,6 +225,7 @@ export interface FileRoutesByTo {
   '/app/contratos/novo': typeof AuthenticatedAppContratosNovoRoute
   '/app/financas/novo': typeof AuthenticatedAppFinancasNovoRoute
   '/app/imoveis/novo': typeof AuthenticatedAppImoveisNovoRoute
+  '/app/reservas/calendario': typeof AuthenticatedAppReservasCalendarioRoute
   '/app/reservas/nova': typeof AuthenticatedAppReservasNovaRoute
   '/app/clientes': typeof AuthenticatedAppClientesIndexRoute
   '/app/contratos': typeof AuthenticatedAppContratosIndexRoute
@@ -245,6 +254,7 @@ export interface FileRoutesById {
   '/_authenticated/app/contratos/novo': typeof AuthenticatedAppContratosNovoRoute
   '/_authenticated/app/financas/novo': typeof AuthenticatedAppFinancasNovoRoute
   '/_authenticated/app/imoveis/novo': typeof AuthenticatedAppImoveisNovoRoute
+  '/_authenticated/app/reservas/calendario': typeof AuthenticatedAppReservasCalendarioRoute
   '/_authenticated/app/reservas/nova': typeof AuthenticatedAppReservasNovaRoute
   '/_authenticated/app/clientes/': typeof AuthenticatedAppClientesIndexRoute
   '/_authenticated/app/contratos/': typeof AuthenticatedAppContratosIndexRoute
@@ -273,6 +283,7 @@ export interface FileRouteTypes {
     | '/app/contratos/novo'
     | '/app/financas/novo'
     | '/app/imoveis/novo'
+    | '/app/reservas/calendario'
     | '/app/reservas/nova'
     | '/app/clientes/'
     | '/app/contratos/'
@@ -299,6 +310,7 @@ export interface FileRouteTypes {
     | '/app/contratos/novo'
     | '/app/financas/novo'
     | '/app/imoveis/novo'
+    | '/app/reservas/calendario'
     | '/app/reservas/nova'
     | '/app/clientes'
     | '/app/contratos'
@@ -326,6 +338,7 @@ export interface FileRouteTypes {
     | '/_authenticated/app/contratos/novo'
     | '/_authenticated/app/financas/novo'
     | '/_authenticated/app/imoveis/novo'
+    | '/_authenticated/app/reservas/calendario'
     | '/_authenticated/app/reservas/nova'
     | '/_authenticated/app/clientes/'
     | '/_authenticated/app/contratos/'
@@ -456,6 +469,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAppReservasIndexRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/app/reservas/calendario': {
+      id: '/_authenticated/app/reservas/calendario'
+      path: '/app/reservas/calendario'
+      fullPath: '/app/reservas/calendario'
+      preLoaderRoute: typeof AuthenticatedAppReservasCalendarioRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/app/reservas/nova': {
       id: '/_authenticated/app/reservas/nova'
       path: '/app/reservas/nova'
@@ -537,6 +557,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedAppContratosNovoRoute: typeof AuthenticatedAppContratosNovoRoute
   AuthenticatedAppFinancasNovoRoute: typeof AuthenticatedAppFinancasNovoRoute
   AuthenticatedAppImoveisNovoRoute: typeof AuthenticatedAppImoveisNovoRoute
+  AuthenticatedAppReservasCalendarioRoute: typeof AuthenticatedAppReservasCalendarioRoute
   AuthenticatedAppReservasNovaRoute: typeof AuthenticatedAppReservasNovaRoute
   AuthenticatedAppClientesIndexRoute: typeof AuthenticatedAppClientesIndexRoute
   AuthenticatedAppContratosIndexRoute: typeof AuthenticatedAppContratosIndexRoute
@@ -563,6 +584,8 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedAppContratosNovoRoute: AuthenticatedAppContratosNovoRoute,
   AuthenticatedAppFinancasNovoRoute: AuthenticatedAppFinancasNovoRoute,
   AuthenticatedAppImoveisNovoRoute: AuthenticatedAppImoveisNovoRoute,
+  AuthenticatedAppReservasCalendarioRoute:
+    AuthenticatedAppReservasCalendarioRoute,
   AuthenticatedAppReservasNovaRoute: AuthenticatedAppReservasNovaRoute,
   AuthenticatedAppClientesIndexRoute: AuthenticatedAppClientesIndexRoute,
   AuthenticatedAppContratosIndexRoute: AuthenticatedAppContratosIndexRoute,

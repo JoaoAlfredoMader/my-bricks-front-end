@@ -566,6 +566,9 @@ export function fakeApi({
       const matches = state.reservations
         .filter((r) => !query.get('propertyId') || r.propertyId === query.get('propertyId'))
         .filter((r) => !query.get('status') || r.status === query.get('status'))
+        // The window [from, to): a stay is in it while it overlaps it, as the API's list does.
+        .filter((r) => !query.get('from') || r.checkOut > query.get('from')!)
+        .filter((r) => !query.get('to') || r.checkIn < query.get('to')!)
         .sort((a, b) => b.checkIn.localeCompare(a.checkIn))
       return json({ items: matches.slice((page - 1) * pageSize, page * pageSize), page, pageSize, total: matches.length })
     }
