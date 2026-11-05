@@ -6,6 +6,7 @@ import {
   formatCompactMoney,
   formatDate,
   formatMoney,
+  formatNumericDate,
   formatRate,
   formatTimeUntil,
   formatWholeMoney,
@@ -55,5 +56,7 @@ describe('format', () => {
 
   it('reads a date as a calendar day', () => {
     expect(formatDate('2026-11-04')).toBe('4 de novembro de 2026')
+    expect(formatNumericDate('2026-11-04')).toBe('04/11/2026')
+    expect(formatNumericDate('2022-01-01')).toBe('01/01/2022')
   })
 })

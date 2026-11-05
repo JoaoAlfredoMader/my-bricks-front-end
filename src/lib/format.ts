@@ -74,3 +74,10 @@ export function formatTimestamp(iso: string): string {
 export function formatDate(day: string): string {
   return longDate.format(new Date(`${day}T00:00:00Z`))
 }
+
+const numericDate = new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short', timeZone: 'UTC' })
+
+/** 04/11/2026 — the calendar day for tables, where the long form is too wide. */
+export function formatNumericDate(day: string): string {
+  return numericDate.format(new Date(`${day}T00:00:00Z`))
+}
