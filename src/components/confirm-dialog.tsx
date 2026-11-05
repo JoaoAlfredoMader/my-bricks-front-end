@@ -17,13 +17,26 @@ interface ConfirmDialogProps {
   title: string
   description: string
   confirmLabel: string
+  /** Shown on the confirm button while the action runs. */
+  pendingLabel?: string
+  /** The button that closes without acting; "Voltar" when the action itself is a cancel. */
+  cancelLabel?: string
   /** Throwing keeps the dialog open and shows `errorMessage`. */
   onConfirm: () => Promise<unknown>
   errorMessage?: (error: unknown) => string
 }
 
 /** Asks before an action that cannot be undone, such as a delete. */
-export function ConfirmDialog({ trigger, title, description, confirmLabel, onConfirm, errorMessage }: ConfirmDialogProps) {
+export function ConfirmDialog({
+  trigger,
+  title,
+  description,
+  confirmLabel,
+  pendingLabel = 'Excluindo…',
+  cancelLabel = 'Cancelar',
+  onConfirm,
+  errorMessage,
+}: ConfirmDialogProps) {
   const [open, setOpen] = useState(false)
   const [pending, setPending] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -62,7 +75,7 @@ export function ConfirmDialog({ trigger, title, description, confirmLabel, onCon
         )}
         <AlertDialogFooter>
           <AlertDialogCancel size="lg" className="h-10 px-5" disabled={pending}>
-            Cancelar
+            {cancelLabel}
           </AlertDialogCancel>
           <Button
             size="lg"
@@ -70,7 +83,7 @@ export function ConfirmDialog({ trigger, title, description, confirmLabel, onCon
             disabled={pending}
             onClick={confirm}
           >
-            {pending ? 'Excluindo…' : confirmLabel}
+            {pending ? pendingLabel : confirmLabel}
           </Button>
         </AlertDialogFooter>
       </AlertDialogContent>
