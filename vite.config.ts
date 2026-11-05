@@ -36,5 +36,22 @@ export default defineConfig(({ mode }) => ({
     maxWorkers: 4,
     // The property page fetches a dozen things; the default 5 seconds is too tight for it under load.
     testTimeout: 15_000,
+    coverage: {
+      provider: 'v8',
+      include: ['src/**/*.{ts,tsx}'],
+      exclude: [
+        'src/**/*.test.{ts,tsx}',
+        'src/test/**',
+        // Generated: the API's types, the router's tree, and the shadcn CLI's components.
+        'src/lib/api/schema.d.ts',
+        'src/routeTree.gen.ts',
+        'src/components/ui/**',
+        'src/**/*.d.ts',
+        'src/main.tsx',
+      ],
+      reporter: ['text-summary', 'json-summary', 'json', 'html'],
+      // A floor a little under what the suite reaches, so a screen added without tests fails `npm run coverage`.
+      thresholds: { statements: 95, branches: 88, functions: 95, lines: 96 },
+    },
   },
 }))
