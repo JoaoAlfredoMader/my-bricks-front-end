@@ -45,6 +45,25 @@ describe('App layout', () => {
     expect(screen.getByRole('button', { name: 'Voltar para minha conta' })).toBeInTheDocument()
   })
 
+  it('goes back to the admin own account and drops the warning', async () => {
+    const user = userEvent.setup()
+    const api = fakeApi({
+      session: makeSession({ impersonatedById: 'admin-1' }),
+      handlers: {
+        'POST /api/auth/admin/stop-impersonating': () => {
+          api.state.session = makeSession()
+          return json({ session: {}, user: {} })
+        },
+      },
+    })
+    renderRoute('/app')
+
+    await user.click(await screen.findByRole('button', { name: 'Voltar para minha conta' }))
+
+    await waitFor(() => expect(screen.queryByRole('status')).not.toBeInTheDocument())
+    expect(api.callsTo('/api/auth/admin/stop-impersonating')).toHaveLength(1)
+  })
+
   it('shows no warning in a normal session', async () => {
     fakeApi({ session: makeSession() })
     renderRoute('/app')
