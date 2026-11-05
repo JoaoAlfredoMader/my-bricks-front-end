@@ -1,5 +1,6 @@
 import { vi } from 'vitest'
 import type { Session } from '@/features/auth/api/session'
+import type { Contract, CreateContractRequest, Occupant } from '@/features/contracts/api/queries'
 import type { PortfolioKpis, PropertyKpis } from '@/features/dashboard/api/portfolio-kpis'
 import type { Photo, PropertyDocument } from '@/features/properties/api/files'
 import type { FinancingSchedule, Property, PropertyCatalog } from '@/features/properties/api/queries'
@@ -134,6 +135,29 @@ export function makePropertyRecord(overrides: Partial<Property> = {}): Property 
   }
 }
 
+let contractSeq = 0
+
+/** A contract as GET /api/contracts/{id} returns it: a conventional, active one by default. */
+export function makeContract(overrides: Partial<Contract> = {}): Contract {
+  contractSeq += 1
+  return {
+    id: `00000000-0000-4000-9000-${String(contractSeq).padStart(12, '0')}`,
+    propertyId: '00000000-0000-4000-8000-000000000001',
+    propertyName: 'Apartamento Centro',
+    contractType: 'conventional',
+    status: 'active',
+    startDate: '2026-01-08',
+    endDate: '2028-01-07',
+    notes: null,
+    occupant: { id: `occupant-${contractSeq}`, name: 'Ana Carolina Souza', document: '39053344705', email: 'ana@example.com', phone: '11965432109' },
+    rentTerms: { monthlyRentCents: 380_000, dueDay: 5, adjustmentIndex: 'igpm' },
+    pdfUrl: null,
+    createdAt: '2026-01-08T12:00:00.000Z',
+    updatedAt: '2026-01-08T12:00:00.000Z',
+    ...overrides,
+  }
+}
+
 /** `YYYY-MM-DD` plus `months`, keeping the day (tests use days that every month has). */
 function addMonths(day: string, months: number) {
   const total = Number(day.slice(0, 4)) * 12 + Number(day.slice(5, 7)) - 1 + months
@@ -209,6 +233,9 @@ interface FakeApiOptions {
   /** By property id. */
   photos?: Record<string, Photo[]>
   documents?: Record<string, PropertyDocument[]>
+  contracts?: Contract[]
+  /** Tenants and guests on file, for GET /api/occupants. */
+  occupants?: Occupant[]
   handlers?: Record<string, Handler>
 }
 
@@ -226,9 +253,11 @@ export function fakeApi({
   agencies = [],
   photos = {},
   documents = {},
+  contracts = [],
+  occupants = [],
   handlers = {},
 }: FakeApiOptions = {}) {
-  const state = { session, kpis, properties, photos, documents }
+  const state = { session, kpis, properties, photos, documents, contracts, occupants }
   const calls: { method: string; path: string; query: URLSearchParams; body: unknown }[] = []
   let fileSeq = 0
 
@@ -270,6 +299,78 @@ export function fakeApi({
     if (method === 'DELETE' && rest) {
       list[propertyId!] = current.filter((item) => item.id !== rest)
       return new Response(null, { status: 204 })
+    }
+    return undefined
+  }
+
+  /** Contracts and the occupants they name, kept in `state.contracts` / `state.occupants`. */
+  function contractRoutes(method: string, pathname: string, query: URLSearchParams, body: unknown): Response | undefined {
+    if (method === 'GET' && pathname === '/api/occupants') {
+      const search = query.get('search')?.toLowerCase()
+      const items = state.occupants.filter((o) => !search || o.name.toLowerCase().includes(search))
+      return json({ items: items.slice(0, Number(query.get('pageSize') ?? 20)), page: 1, pageSize: 20, total: items.length })
+    }
+    if (method === 'GET' && pathname === '/api/contracts') {
+      const page = Number(query.get('page') ?? 1)
+      const pageSize = Number(query.get('pageSize') ?? 20)
+      const matches = state.contracts
+        .filter((c) => !query.get('propertyId') || c.propertyId === query.get('propertyId'))
+        .filter((c) => !query.get('status') || c.status === query.get('status'))
+        .filter((c) => !query.get('contractType') || c.contractType === query.get('contractType'))
+        .sort((a, b) => b.startDate.localeCompare(a.startDate))
+      return json({ items: matches.slice((page - 1) * pageSize, page * pageSize), page, pageSize, total: matches.length })
+    }
+    if (method === 'POST' && pathname === '/api/contracts') {
+      const request = body as CreateContractRequest
+      const property = state.properties.find((p) => p.id === request.propertyId)
+      if (!property) return json(NOT_FOUND, 404)
+      if (property.rentalMode !== 'contract') {
+        return json({ error: { code: 'BUSINESS_RULE', message: 'Switch the property to contract rental mode before creating contracts' } }, 422)
+      }
+      const occupant: Occupant =
+        state.occupants.find((o) => o.id === request.occupantId) ??
+        { id: `occupant-new-${state.occupants.length + 1}`, name: request.occupant!.name, document: request.occupant!.document ?? null, email: request.occupant!.email ?? null, phone: request.occupant!.phone ?? null }
+      const replaced = state.contracts.find((c) => c.propertyId === property.id && c.status === 'active')
+      if (replaced) Object.assign(replaced, { status: 'ended', endDate: request.startDate })
+      const created = makeContract({
+        propertyId: property.id,
+        propertyName: property.name,
+        contractType: request.contractType,
+        startDate: request.startDate,
+        endDate: request.endDate ?? null,
+        notes: request.notes ?? null,
+        occupant,
+        rentTerms: request.rentTerms ? { ...request.rentTerms, adjustmentIndex: request.rentTerms.adjustmentIndex ?? null } : null,
+      })
+      state.contracts.push(created)
+      return json({ ...created, replacedContractId: replaced?.id ?? null }, 201)
+    }
+    const match = /^\/api\/contracts\/([^/]+)(?:\/(end|cancel|pdf))?$/.exec(pathname)
+    if (!match) return undefined
+    const contract = state.contracts.find((c) => c.id === match[1])
+    if (!contract) return json(NOT_FOUND, 404)
+    const action = match[2]
+    if (method === 'GET' && !action) return json(contract)
+    const inactive = json({ error: { code: 'BUSINESS_RULE', message: 'Only active contracts can be changed' } }, 422)
+    if (method === 'PATCH' && !action) {
+      if (contract.status !== 'active') return inactive
+      const { rentTerms, ...rest } = body as Partial<Contract>
+      Object.assign(contract, rest, rentTerms ? { rentTerms: { ...contract.rentTerms, ...rentTerms } } : {})
+      return json(contract)
+    }
+    if (method === 'POST' && action === 'end') {
+      if (contract.status !== 'active') return inactive
+      Object.assign(contract, { status: 'ended', endDate: (body as { endDate?: string }).endDate ?? contract.endDate })
+      return json(contract)
+    }
+    if (method === 'POST' && action === 'cancel') {
+      if (contract.status !== 'active') return inactive
+      contract.status = 'cancelled'
+      return json(contract)
+    }
+    if (method === 'POST' && action === 'pdf') {
+      contract.pdfUrl = `/api/contracts/${contract.id}/pdf`
+      return json({ contractId: contract.id, fileName: 'contrato.pdf', sizeBytes: 4932, generatedAt: '2026-11-05T12:00:00.000Z', url: contract.pdfUrl })
     }
     return undefined
   }
@@ -404,7 +505,9 @@ export function fakeApi({
     const handler = handlers[`${request.method} ${pathname}`] ?? defaults[`${request.method} ${pathname}`]
     if (handler) return handler(request)
     const answer = state.session
-      ? (files(request.method, pathname, body) ?? dynamic(request.method, pathname, searchParams, body))
+      ? (files(request.method, pathname, body) ??
+        contractRoutes(request.method, pathname, searchParams, body) ??
+        dynamic(request.method, pathname, searchParams, body))
       : undefined
     if (answer) return answer
     return json({ error: { code: 'NOT_FOUND', message: `No fake for ${request.method} ${pathname}` } }, 404)

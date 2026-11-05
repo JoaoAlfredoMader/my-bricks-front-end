@@ -13,8 +13,12 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as AuthenticatedAppIndexRouteImport } from './routes/_authenticated/app/index'
+import { Route as AuthenticatedAppContratosIndexRouteImport } from './routes/_authenticated/app/contratos/index'
+import { Route as AuthenticatedAppContratosNovoRouteImport } from './routes/_authenticated/app/contratos/novo'
 import { Route as AuthenticatedAppImoveisIndexRouteImport } from './routes/_authenticated/app/imoveis/index'
 import { Route as AuthenticatedAppImoveisNovoRouteImport } from './routes/_authenticated/app/imoveis/novo'
+import { Route as AuthenticatedAppContratosContractIdIndexRouteImport } from './routes/_authenticated/app/contratos/$contractId/index'
+import { Route as AuthenticatedAppContratosContractIdEditarRouteImport } from './routes/_authenticated/app/contratos/$contractId/editar'
 import { Route as AuthenticatedAppImoveisPropertyIdIndexRouteImport } from './routes/_authenticated/app/imoveis/$propertyId/index'
 import { Route as AuthenticatedAppImoveisPropertyIdEditarRouteImport } from './routes/_authenticated/app/imoveis/$propertyId/editar'
 
@@ -37,6 +41,18 @@ const AuthenticatedAppIndexRoute = AuthenticatedAppIndexRouteImport.update({
   path: '/app/',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AuthenticatedAppContratosIndexRoute =
+  AuthenticatedAppContratosIndexRouteImport.update({
+    id: '/app/contratos/',
+    path: '/app/contratos/',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedAppContratosNovoRoute =
+  AuthenticatedAppContratosNovoRouteImport.update({
+    id: '/app/contratos/novo',
+    path: '/app/contratos/novo',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 const AuthenticatedAppImoveisIndexRoute =
   AuthenticatedAppImoveisIndexRouteImport.update({
     id: '/app/imoveis/',
@@ -47,6 +63,18 @@ const AuthenticatedAppImoveisNovoRoute =
   AuthenticatedAppImoveisNovoRouteImport.update({
     id: '/app/imoveis/novo',
     path: '/app/imoveis/novo',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedAppContratosContractIdIndexRoute =
+  AuthenticatedAppContratosContractIdIndexRouteImport.update({
+    id: '/app/contratos/$contractId/',
+    path: '/app/contratos/$contractId/',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedAppContratosContractIdEditarRoute =
+  AuthenticatedAppContratosContractIdEditarRouteImport.update({
+    id: '/app/contratos/$contractId/editar',
+    path: '/app/contratos/$contractId/editar',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
 const AuthenticatedAppImoveisPropertyIdIndexRoute =
@@ -66,18 +94,26 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/app/': typeof AuthenticatedAppIndexRoute
+  '/app/contratos/novo': typeof AuthenticatedAppContratosNovoRoute
   '/app/imoveis/novo': typeof AuthenticatedAppImoveisNovoRoute
+  '/app/contratos/': typeof AuthenticatedAppContratosIndexRoute
   '/app/imoveis/': typeof AuthenticatedAppImoveisIndexRoute
+  '/app/contratos/$contractId/editar': typeof AuthenticatedAppContratosContractIdEditarRoute
   '/app/imoveis/$propertyId/editar': typeof AuthenticatedAppImoveisPropertyIdEditarRoute
+  '/app/contratos/$contractId/': typeof AuthenticatedAppContratosContractIdIndexRoute
   '/app/imoveis/$propertyId/': typeof AuthenticatedAppImoveisPropertyIdIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/app': typeof AuthenticatedAppIndexRoute
+  '/app/contratos/novo': typeof AuthenticatedAppContratosNovoRoute
   '/app/imoveis/novo': typeof AuthenticatedAppImoveisNovoRoute
+  '/app/contratos': typeof AuthenticatedAppContratosIndexRoute
   '/app/imoveis': typeof AuthenticatedAppImoveisIndexRoute
+  '/app/contratos/$contractId/editar': typeof AuthenticatedAppContratosContractIdEditarRoute
   '/app/imoveis/$propertyId/editar': typeof AuthenticatedAppImoveisPropertyIdEditarRoute
+  '/app/contratos/$contractId': typeof AuthenticatedAppContratosContractIdIndexRoute
   '/app/imoveis/$propertyId': typeof AuthenticatedAppImoveisPropertyIdIndexRoute
 }
 export interface FileRoutesById {
@@ -86,9 +122,13 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteWithChildren
   '/login': typeof LoginRoute
   '/_authenticated/app/': typeof AuthenticatedAppIndexRoute
+  '/_authenticated/app/contratos/novo': typeof AuthenticatedAppContratosNovoRoute
   '/_authenticated/app/imoveis/novo': typeof AuthenticatedAppImoveisNovoRoute
+  '/_authenticated/app/contratos/': typeof AuthenticatedAppContratosIndexRoute
   '/_authenticated/app/imoveis/': typeof AuthenticatedAppImoveisIndexRoute
+  '/_authenticated/app/contratos/$contractId/editar': typeof AuthenticatedAppContratosContractIdEditarRoute
   '/_authenticated/app/imoveis/$propertyId/editar': typeof AuthenticatedAppImoveisPropertyIdEditarRoute
+  '/_authenticated/app/contratos/$contractId/': typeof AuthenticatedAppContratosContractIdIndexRoute
   '/_authenticated/app/imoveis/$propertyId/': typeof AuthenticatedAppImoveisPropertyIdIndexRoute
 }
 export interface FileRouteTypes {
@@ -97,18 +137,26 @@ export interface FileRouteTypes {
     | '/'
     | '/login'
     | '/app/'
+    | '/app/contratos/novo'
     | '/app/imoveis/novo'
+    | '/app/contratos/'
     | '/app/imoveis/'
+    | '/app/contratos/$contractId/editar'
     | '/app/imoveis/$propertyId/editar'
+    | '/app/contratos/$contractId/'
     | '/app/imoveis/$propertyId/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/login'
     | '/app'
+    | '/app/contratos/novo'
     | '/app/imoveis/novo'
+    | '/app/contratos'
     | '/app/imoveis'
+    | '/app/contratos/$contractId/editar'
     | '/app/imoveis/$propertyId/editar'
+    | '/app/contratos/$contractId'
     | '/app/imoveis/$propertyId'
   id:
     | '__root__'
@@ -116,9 +164,13 @@ export interface FileRouteTypes {
     | '/_authenticated'
     | '/login'
     | '/_authenticated/app/'
+    | '/_authenticated/app/contratos/novo'
     | '/_authenticated/app/imoveis/novo'
+    | '/_authenticated/app/contratos/'
     | '/_authenticated/app/imoveis/'
+    | '/_authenticated/app/contratos/$contractId/editar'
     | '/_authenticated/app/imoveis/$propertyId/editar'
+    | '/_authenticated/app/contratos/$contractId/'
     | '/_authenticated/app/imoveis/$propertyId/'
   fileRoutesById: FileRoutesById
 }
@@ -158,6 +210,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAppIndexRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/app/contratos/': {
+      id: '/_authenticated/app/contratos/'
+      path: '/app/contratos'
+      fullPath: '/app/contratos/'
+      preLoaderRoute: typeof AuthenticatedAppContratosIndexRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/app/contratos/novo': {
+      id: '/_authenticated/app/contratos/novo'
+      path: '/app/contratos/novo'
+      fullPath: '/app/contratos/novo'
+      preLoaderRoute: typeof AuthenticatedAppContratosNovoRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/app/imoveis/': {
       id: '/_authenticated/app/imoveis/'
       path: '/app/imoveis'
@@ -170,6 +236,20 @@ declare module '@tanstack/react-router' {
       path: '/app/imoveis/novo'
       fullPath: '/app/imoveis/novo'
       preLoaderRoute: typeof AuthenticatedAppImoveisNovoRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/app/contratos/$contractId/': {
+      id: '/_authenticated/app/contratos/$contractId/'
+      path: '/app/contratos/$contractId'
+      fullPath: '/app/contratos/$contractId/'
+      preLoaderRoute: typeof AuthenticatedAppContratosContractIdIndexRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/app/contratos/$contractId/editar': {
+      id: '/_authenticated/app/contratos/$contractId/editar'
+      path: '/app/contratos/$contractId/editar'
+      fullPath: '/app/contratos/$contractId/editar'
+      preLoaderRoute: typeof AuthenticatedAppContratosContractIdEditarRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/app/imoveis/$propertyId/': {
@@ -191,18 +271,28 @@ declare module '@tanstack/react-router' {
 
 interface AuthenticatedRouteChildren {
   AuthenticatedAppIndexRoute: typeof AuthenticatedAppIndexRoute
+  AuthenticatedAppContratosNovoRoute: typeof AuthenticatedAppContratosNovoRoute
   AuthenticatedAppImoveisNovoRoute: typeof AuthenticatedAppImoveisNovoRoute
+  AuthenticatedAppContratosIndexRoute: typeof AuthenticatedAppContratosIndexRoute
   AuthenticatedAppImoveisIndexRoute: typeof AuthenticatedAppImoveisIndexRoute
+  AuthenticatedAppContratosContractIdEditarRoute: typeof AuthenticatedAppContratosContractIdEditarRoute
   AuthenticatedAppImoveisPropertyIdEditarRoute: typeof AuthenticatedAppImoveisPropertyIdEditarRoute
+  AuthenticatedAppContratosContractIdIndexRoute: typeof AuthenticatedAppContratosContractIdIndexRoute
   AuthenticatedAppImoveisPropertyIdIndexRoute: typeof AuthenticatedAppImoveisPropertyIdIndexRoute
 }
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedAppIndexRoute: AuthenticatedAppIndexRoute,
+  AuthenticatedAppContratosNovoRoute: AuthenticatedAppContratosNovoRoute,
   AuthenticatedAppImoveisNovoRoute: AuthenticatedAppImoveisNovoRoute,
+  AuthenticatedAppContratosIndexRoute: AuthenticatedAppContratosIndexRoute,
   AuthenticatedAppImoveisIndexRoute: AuthenticatedAppImoveisIndexRoute,
+  AuthenticatedAppContratosContractIdEditarRoute:
+    AuthenticatedAppContratosContractIdEditarRoute,
   AuthenticatedAppImoveisPropertyIdEditarRoute:
     AuthenticatedAppImoveisPropertyIdEditarRoute,
+  AuthenticatedAppContratosContractIdIndexRoute:
+    AuthenticatedAppContratosContractIdIndexRoute,
   AuthenticatedAppImoveisPropertyIdIndexRoute:
     AuthenticatedAppImoveisPropertyIdIndexRoute,
 }
