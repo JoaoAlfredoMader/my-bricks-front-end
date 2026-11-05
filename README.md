@@ -129,7 +129,7 @@ Each property name links to its page.
 - **Excluir** removes the property with everything attached to it, after a dialog that says so. The page is left before the cache is cleared, so nothing tries to show the deleted property again.
 - **While impersonating**, the delete buttons are not offered at all, since the API refuses every `DELETE` then.
 
-The financing schedule is not on these screens yet.
+- **Financing.** A financed property gets a full-width card with its terms (from the property itself, so they show even if the schedule fails) and the schedule from `GET /api/properties/{id}/financing-schedule`, as of the API's today: how many installments are paid (a thin bar with the count beside it), the outstanding balance, the next installment, what was paid so far and the interest over the whole contract. Below, the installments of one year at a time (amount, interest, amortization, balance after, and *Paga* / *Próxima* / *A vencer* in words), opening on the year of the next installment; arrows and a year menu move between years. Every figure comes from the API: an installment is shown as paid when its number is within `summary.paidInstallments`. The schedule is only asked for when there is a financing, and it is refetched with the property after an edit.
 
 Data colours follow the `dataviz` skill: the first four slots of its reference palette (blue, orange, aqua, yellow), validated on white with its script, always next to a text label. Money is formatted from integer cents and rates from fractions in `src/lib/format.ts`.
 
@@ -143,7 +143,7 @@ npm test
 
 Tests render the real route tree with a memory history (`src/test/render-route.tsx`). The router plugin is left out of the test config because the generated route tree is committed and the plugin's watcher keeps Vitest workers from starting.
 
-`src/test/fake-api.ts` stubs `fetch` with a small in-memory API: `/api/me`, the portfolio indicators, the active organization, the property list (searched, filtered and paged like the real one), each property, its indicators and clients answer from the fake state (`makeSession`, `makeKpis`, `makePropertyRecord`), and each test adds the Better Auth endpoints it needs. Both clients look `fetch` up on every call so the stub takes effect, and jsdom runs on `http://mybricks.test` so a test can never reach the real API on `localhost:3000`.
+`src/test/fake-api.ts` stubs `fetch` with a small in-memory API: `/api/me`, the portfolio indicators, the active organization, the property list (searched, filtered and paged like the real one), each property, its indicators, its financing schedule and clients answer from the fake state (`makeSession`, `makeKpis`, `makePropertyRecord`, `makeFinancingSchedule`, a SAC schedule with round numbers), and each test adds the Better Auth endpoints it needs. Both clients look `fetch` up on every call so the stub takes effect, and jsdom runs on `http://mybricks.test` so a test can never reach the real API on `localhost:3000`.
 
 Uploads are the one place tests do not go through the real request code: jsdom's `FormData` and `File` cannot be carried by Node's `Request`, so `property-files.test.tsx` replaces only the two upload calls with JSON describing the file. Everything around them (checks, queueing, order, screens, the fake API) runs as in the app; the multipart request itself was checked against the real API in the browser.
 
