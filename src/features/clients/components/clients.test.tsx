@@ -56,6 +56,36 @@ describe('Client list', { timeout: 20_000 }, () => {
 
     expect(await screen.findByText('Nenhum cliente cadastrado ainda')).toBeInTheDocument()
   })
+
+  it('offers to clear the filters when nothing matches them', async () => {
+    const user = userEvent.setup()
+    fakeApi({ session: makeSession(), clients: [makeClient({ name: 'Maria Oliveira' })] })
+    const { router } = renderRoute('/app/clientes?personType=company')
+
+    expect(await screen.findByText('Nenhum cliente encontrado')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Limpar filtros' }))
+
+    await waitFor(() => expect(rows()).toHaveLength(1))
+    expect(router.state.location.search).toEqual({})
+  })
+
+  it('pages through twenty at a time', async () => {
+    const user = userEvent.setup()
+    fakeApi({ session: makeSession(), clients: Array.from({ length: 21 }, (_, i) => makeClient({ name: `Cliente ${String(i + 1).padStart(2, '0')}` })) })
+    const { router } = renderRoute('/app/clientes')
+
+    expect(await screen.findByText('1–20 de 21')).toBeInTheDocument()
+    expect(rows()).toHaveLength(20)
+    await user.click(screen.getByRole('button', { name: 'Próxima' }))
+
+    expect(await screen.findByText('21–21 de 21')).toBeInTheDocument()
+    expect(rows()).toHaveLength(1)
+    expect(router.state.location.search).toEqual({ page: 2 })
+
+    await user.click(screen.getByRole('button', { name: 'Anterior' }))
+    await waitFor(() => expect(rows()).toHaveLength(20))
+    expect(router.state.location.search).toEqual({})
+  })
 })
 
 describe('Client page', { timeout: 20_000 }, () => {

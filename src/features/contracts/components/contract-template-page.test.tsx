@@ -1,7 +1,7 @@
 import { fireEvent, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { DEFAULT_TEMPLATE, fakeApi, makeContract, makePropertyRecord, makeSession } from '@/test/fake-api'
+import { DEFAULT_TEMPLATE, fakeApi, json, makeContract, makePropertyRecord, makeSession } from '@/test/fake-api'
 import { renderRoute } from '@/test/render-route'
 
 /** jsdom has no `execCommand`; this one types the text where the test says the cursor is. */
@@ -23,6 +23,11 @@ function write(name: string, html: string) {
   const element = editor(name)
   element.innerHTML = html
   fireEvent.input(element)
+}
+
+function renderRouteWithTemplate() {
+  fakeApi({ session: makeSession() })
+  return renderRoute('/app/contratos/modelo')
 }
 
 const saveButton = () => screen.getByRole('button', { name: /Salvar modelo|Salvando/ })
@@ -80,6 +85,31 @@ describe('Contract template', { timeout: 20_000 }, () => {
     expect(put?.body).toMatchObject({ footer: expect.stringContaining('{{locatario}}') })
   })
 
+  it('puts the cursor at the end of the part before inserting a token when it was somewhere else', async () => {
+    const user = userEvent.setup()
+    renderRouteWithTemplate()
+    await screen.findByRole('textbox', { name: 'Rodapé' })
+    editor('Rodapé').focus()
+    // The cursor left the editor: it is on the page title now.
+    window.getSelection()!.selectAllChildren(screen.getByRole('heading', { level: 1, name: 'Modelo de contrato' }))
+
+    await user.click(within(screen.getByRole('complementary', { name: 'Marcadores' })).getByRole('button', { name: /{{locador}}/ }))
+
+    expect(editor('Rodapé').contains(window.getSelection()!.anchorNode)).toBe(true)
+    expect(editor('Rodapé').innerHTML).toContain('{{locador}}')
+  })
+
+  it('keeps only the words of what is pasted', () => {
+    const exec = stubEditing()
+    renderRouteWithTemplate()
+    return screen.findByRole('textbox', { name: 'Cláusulas' }).then((clauses) => {
+      const notPrevented = fireEvent.paste(clauses, { clipboardData: { getData: (type: string) => (type === 'text/plain' ? 'só o texto' : '<b>formatado</b>') } })
+
+      expect(notPrevented).toBe(false)
+      expect(exec).toHaveBeenCalledWith('insertText', false, 'só o texto')
+    })
+  })
+
   it('formats the selection through the toolbar of the part', async () => {
     const user = userEvent.setup()
     fakeApi({ session: makeSession() })
@@ -125,6 +155,56 @@ describe('Contract template', { timeout: 20_000 }, () => {
     expect(await screen.findByText('As cláusulas precisam ter texto.')).toBeInTheDocument()
     expect(editor('Cláusulas')).toHaveAttribute('aria-invalid', 'true')
     expect(api.calls.some((call) => call.method === 'PUT')).toBe(false)
+  })
+
+  it('refuses a part that is over its limit, saying how long it may be', async () => {
+    const user = userEvent.setup()
+    const api = fakeApi({ session: makeSession() })
+    renderRoute('/app/contratos/modelo')
+
+    await screen.findByRole('textbox', { name: 'Rodapé' })
+    write('Rodapé', `<p>${'a'.repeat(5_001)}</p>`)
+    await user.click(saveButton())
+
+    expect(await screen.findByText('Texto demais: o limite é 5.000 caracteres.')).toBeInTheDocument()
+    expect(editor('Rodapé')).toHaveAttribute('aria-invalid', 'true')
+    expect(api.calls.some((call) => call.method === 'PUT')).toBe(false)
+  })
+
+  it.each([
+    [403, { code: 'FORBIDDEN', message: 'Forbidden' }, 'Só donos e administradores podem editar o modelo de contrato.'],
+    [400, { code: 'VALIDATION_ERROR', message: 'Invalid', details: [{ path: 'clauses', message: 'Required' }] }, 'As cláusulas precisam ter texto.'],
+    [500, { code: 'INTERNAL_ERROR', message: 'boom' }, 'Não foi possível salvar agora. Verifique a conexão e tente de novo.'],
+  ])('says what happened when the API answers %i to a save', async (status, error, message) => {
+    const user = userEvent.setup()
+    fakeApi({ session: makeSession(), handlers: { 'PUT /api/contract-template': () => json({ error }, status) } })
+    renderRoute('/app/contratos/modelo')
+
+    await screen.findByRole('textbox', { name: 'Cabeçalho' })
+    write('Cabeçalho', '<h1>NOVO</h1>')
+    await user.click(saveButton())
+
+    expect(await screen.findByText(message)).toBeInTheDocument()
+    expect(screen.queryByText('Modelo salvo.')).not.toBeInTheDocument()
+  })
+
+  it('keeps the dialog open and says so when going back to the default fails', async () => {
+    const user = userEvent.setup()
+    fakeApi({
+      session: makeSession(),
+      template: { header: '<h1>NOSSO CONTRATO</h1>', clauses: '<p>Cláusula nossa.</p>', footer: '' },
+      handlers: { 'DELETE /api/contract-template': () => json({ error: { code: 'INTERNAL_ERROR', message: 'boom' } }, 500) },
+    })
+    renderRoute('/app/contratos/modelo')
+
+    await user.click(await screen.findByRole('button', { name: 'Voltar ao padrão' }))
+    const dialog = await screen.findByRole('alertdialog', { name: 'Voltar ao modelo padrão?' })
+    await user.click(within(dialog).getByRole('button', { name: 'Voltar ao padrão' }))
+
+    expect(await within(dialog).findByRole('alert')).toHaveTextContent('Não foi possível salvar agora.')
+    await user.click(within(dialog).getByRole('button', { name: 'Cancelar' }))
+    await waitFor(() => expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument())
+    expect(editor('Cabeçalho').innerHTML).toBe('<h1>NOSSO CONTRATO</h1>')
   })
 
   it('previews the contract with example data, leaving an unknown token as typed', async () => {

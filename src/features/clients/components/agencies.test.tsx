@@ -1,7 +1,7 @@
 import { screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it } from 'vitest'
-import { fakeApi, makePropertyRecord, makeSession } from '@/test/fake-api'
+import { fakeApi, json, makePropertyRecord, makeSession } from '@/test/fake-api'
 import { renderRoute } from '@/test/render-route'
 
 function names() {
@@ -87,5 +87,53 @@ describe('Agencies', { timeout: 20_000 }, () => {
 
     await screen.findByRole('button', { name: 'Renomear Imobiliária Central' })
     expect(screen.queryByRole('button', { name: 'Excluir Imobiliária Central' })).not.toBeInTheDocument()
+  })
+
+  it('says what the API refused when adding an agency, and when it did not answer', async () => {
+    const user = userEvent.setup()
+    let failure = json({ error: { code: 'VALIDATION_ERROR', message: 'Invalid request', details: [{ path: 'name', message: 'Too short' }] } }, 400)
+    fakeApi({ session: makeSession(), handlers: { 'POST /api/agencies': () => failure } })
+    renderRoute('/app/clientes/imobiliarias')
+
+    await user.type(await screen.findByLabelText('Nome da nova imobiliária'), 'Imobiliária Norte')
+    await user.click(screen.getByRole('button', { name: 'Adicionar' }))
+    expect(await screen.findByRole('alert')).toHaveTextContent('Informe o nome (pelo menos 2 letras).')
+
+    failure = json({ error: { code: 'INTERNAL_ERROR', message: 'boom' } }, 500)
+    await user.click(screen.getByRole('button', { name: 'Adicionar' }))
+    await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent('Não foi possível salvar agora. Tente de novo.'))
+    expect(screen.getByLabelText('Nome da nova imobiliária')).toHaveValue('Imobiliária Norte')
+  })
+
+  it('leaves a rename without saving, by Cancel or by Escape', async () => {
+    const user = userEvent.setup()
+    const api = fakeApi({ session: makeSession(), agencies: [{ id: 'a-1', name: 'Imobiliária Central' }] })
+    renderRoute('/app/clientes/imobiliarias')
+
+    await user.click(await screen.findByRole('button', { name: 'Renomear Imobiliária Central' }))
+    await user.type(screen.getByLabelText('Novo nome de Imobiliária Central'), ' Norte')
+    await user.click(screen.getByRole('button', { name: 'Cancelar' }))
+    expect(screen.queryByLabelText('Novo nome de Imobiliária Central')).not.toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Renomear Imobiliária Central' }))
+    await user.type(screen.getByLabelText('Novo nome de Imobiliária Central'), '{Escape}')
+    expect(screen.queryByLabelText('Novo nome de Imobiliária Central')).not.toBeInTheDocument()
+    expect(names()).toEqual(['Imobiliária Central'])
+    expect(api.calls.some((call) => call.method === 'PATCH')).toBe(false)
+  })
+
+  it('explains a delete the API blocked because an admin is seeing the app as someone else', async () => {
+    const user = userEvent.setup()
+    fakeApi({
+      session: makeSession(),
+      agencies: [{ id: 'a-1', name: 'Imobiliária Central' }],
+      handlers: { 'DELETE /api/agencies/a-1': () => json({ error: { code: 'FORBIDDEN', message: 'Forbidden' } }, 403) },
+    })
+    renderRoute('/app/clientes/imobiliarias')
+
+    await user.click(await screen.findByRole('button', { name: 'Excluir Imobiliária Central' }))
+    const dialog = await screen.findByRole('alertdialog')
+    await user.click(within(dialog).getByRole('button', { name: 'Excluir imobiliária' }))
+    expect(await within(dialog).findByRole('alert')).toHaveTextContent('Exclusões ficam bloqueadas')
   })
 })

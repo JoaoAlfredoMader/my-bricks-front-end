@@ -1,7 +1,7 @@
 import { screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { fakeApi, makeSession, makeTransaction } from '@/test/fake-api'
+import { fakeApi, makePropertyRecord, makeSession, makeTransaction } from '@/test/fake-api'
 import { renderRoute } from '@/test/render-route'
 
 // Intl separates the currency sign with a no-break space.
@@ -91,5 +91,75 @@ describe('Transaction list', { timeout: 20_000 }, () => {
     renderRoute('/app/financas')
 
     expect(await screen.findByText('Nenhum lançamento ainda')).toBeInTheDocument()
+  })
+
+  it('filters by category, property and recurrence, and drops a category that does not fit a newly chosen type', async () => {
+    const user = userEvent.setup()
+    const casa = makePropertyRecord({ name: 'Casa de Praia' })
+    const api = fakeApi({
+      session: makeSession(),
+      properties: [casa],
+      transactions: [makeTransaction({ propertyId: casa.id, propertyName: 'Casa de Praia' }), makeTransaction({ propertyId: '00000000-0000-4000-8000-000000000099', categoryId: 4, categoryName: 'Indenização', type: 'revenue', isRecurring: true })],
+    })
+    const { router } = renderRoute('/app/financas')
+    const lastQuery = () => api.callsTo('/api/transactions').at(-1)!.query
+
+    await screen.findByRole('heading', { level: 1, name: 'Finanças' })
+    await user.click(screen.getByRole('combobox', { name: 'Categoria' }))
+    await user.click(await screen.findByRole('option', { name: 'Reforma' }))
+    await waitFor(() => expect(router.state.location.search).toEqual({ categoryId: 7 }))
+    expect(lastQuery().get('categoryId')).toBe('7')
+
+    // Reforma is an expense: asking for revenues drops it instead of listing nothing.
+    await user.click(screen.getByRole('combobox', { name: 'Tipo' }))
+    await user.click(await screen.findByRole('option', { name: 'Receitas' }))
+    await waitFor(() => expect(router.state.location.search).toEqual({ type: 'revenue' }))
+
+    await user.click(screen.getByRole('combobox', { name: 'Tipo' }))
+    await user.click(await screen.findByRole('option', { name: 'Receitas e despesas' }))
+    await waitFor(() => expect(router.state.location.search).toEqual({}))
+
+    await user.click(screen.getByRole('combobox', { name: 'Imóvel' }))
+    await user.click(await screen.findByRole('option', { name: 'Casa de Praia' }))
+    await waitFor(() => expect(rows()).toHaveLength(1))
+    expect(lastQuery().get('propertyId')).toBe(casa.id)
+
+    await user.click(screen.getByRole('combobox', { name: 'Imóvel' }))
+    await user.click(await screen.findByRole('option', { name: 'Todos os imóveis' }))
+    await user.click(screen.getByRole('combobox', { name: 'Recorrência' }))
+    await user.click(await screen.findByRole('option', { name: 'Recorrentes' }))
+    await waitFor(() => expect(rows()).toHaveLength(1))
+    expect(rows()[0]).toContain('Indenização')
+    expect(lastQuery().get('isRecurring')).toBe('true')
+  })
+
+  it('offers to clear the filters when nothing matches them', async () => {
+    const user = userEvent.setup()
+    fakeApi({ session: makeSession(), transactions: [makeTransaction()] })
+    const { router } = renderRoute('/app/financas?type=revenue')
+
+    expect(await screen.findByText('Nenhum lançamento encontrado')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Limpar filtros' }))
+
+    await waitFor(() => expect(rows()).toHaveLength(1))
+    expect(router.state.location.search).toEqual({})
+  })
+
+  it('pages through twenty at a time', async () => {
+    const user = userEvent.setup()
+    fakeApi({ session: makeSession(), transactions: Array.from({ length: 21 }, () => makeTransaction()) })
+    const { router } = renderRoute('/app/financas')
+
+    expect(await screen.findByText('1–20 de 21')).toBeInTheDocument()
+    expect(rows()).toHaveLength(20)
+    await user.click(screen.getByRole('button', { name: 'Próxima' }))
+
+    expect(await screen.findByText('21–21 de 21')).toBeInTheDocument()
+    expect(rows()).toHaveLength(1)
+    expect(router.state.location.search).toEqual({ page: 2 })
+
+    await user.click(screen.getByRole('button', { name: 'Anterior' }))
+    await waitFor(() => expect(rows()).toHaveLength(20))
+    expect(router.state.location.search).toEqual({})
   })
 })

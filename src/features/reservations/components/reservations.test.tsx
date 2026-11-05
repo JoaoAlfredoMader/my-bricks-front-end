@@ -67,6 +67,36 @@ describe('Reservation list', { timeout: 20_000 }, () => {
 
     expect(await screen.findByText('Nenhuma reserva cadastrada ainda')).toBeInTheDocument()
   })
+
+  it('offers to clear the filters when nothing matches them', async () => {
+    const user = userEvent.setup()
+    fakeApi({ session: makeSession(), reservations: [makeReservation()] })
+    const { router } = renderRoute('/app/reservas?status=cancelled')
+
+    expect(await screen.findByText('Nenhuma reserva encontrada')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Limpar filtros' }))
+
+    await waitFor(() => expect(rows()).toHaveLength(1))
+    expect(router.state.location.search).toEqual({})
+  })
+
+  it('pages through twenty at a time', async () => {
+    const user = userEvent.setup()
+    fakeApi({ session: makeSession(), reservations: Array.from({ length: 21 }, () => makeReservation()) })
+    const { router } = renderRoute('/app/reservas')
+
+    expect(await screen.findByText('1–20 de 21')).toBeInTheDocument()
+    expect(rows()).toHaveLength(20)
+    await user.click(screen.getByRole('button', { name: 'Próxima' }))
+
+    expect(await screen.findByText('21–21 de 21')).toBeInTheDocument()
+    expect(rows()).toHaveLength(1)
+    expect(router.state.location.search).toEqual({ page: 2 })
+
+    await user.click(screen.getByRole('button', { name: 'Anterior' }))
+    await waitFor(() => expect(rows()).toHaveLength(20))
+    expect(router.state.location.search).toEqual({})
+  })
 })
 
 describe('Reservation page', { timeout: 20_000 }, () => {
