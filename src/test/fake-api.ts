@@ -1,6 +1,7 @@
 import { vi } from 'vitest'
 import type { Session } from '@/features/auth/api/session'
-import type { Contract, CreateContractRequest, Occupant } from '@/features/contracts/api/queries'
+import type { Contract, CreateContractRequest } from '@/features/contracts/api/queries'
+import type { Occupant } from '@/features/occupants/api/queries'
 import type { PortfolioKpis, PropertyKpis } from '@/features/dashboard/api/portfolio-kpis'
 import type { Photo, PropertyDocument } from '@/features/properties/api/files'
 import type { FinancingSchedule, Property, PropertyCatalog } from '@/features/properties/api/queries'

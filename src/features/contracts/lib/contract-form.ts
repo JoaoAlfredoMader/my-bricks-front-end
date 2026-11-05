@@ -1,12 +1,20 @@
 import { z } from 'zod'
 import { ApiError } from '@/lib/api/client'
 import { dateToInput, moneyToInput, parseDate, parseInteger, parseMoney } from '@/lib/parse'
+import {
+  checkOccupant,
+  EMPTY_OCCUPANT,
+  type Issue,
+  OCCUPANT_API_MESSAGES,
+  OCCUPANT_PATH_TO_FIELD,
+  type OccupantValues,
+  toOccupantRequest,
+} from '@/features/occupants/lib/occupant-form'
 import type {
   AdjustmentIndex,
   Contract,
   ContractType,
   CreateContractRequest,
-  Occupant,
   UpdateContractRequest,
 } from '../api/queries'
 
@@ -21,14 +29,8 @@ export interface RentTermsValues {
   adjustmentIndex: AdjustmentIndex | ''
 }
 
-export interface NewContractValues extends RentTermsValues {
+export interface NewContractValues extends RentTermsValues, OccupantValues {
   propertyId: string
-  occupantMode: 'existing' | 'new'
-  occupant: Occupant | null
-  occupantName: string
-  occupantDocument: string
-  occupantEmail: string
-  occupantPhone: string
   startDate: string
   endDate: string
   notes: string
@@ -42,19 +44,7 @@ export interface EditContractValues extends RentTermsValues {
 export const EMPTY_RENT_TERMS: RentTermsValues = { monthlyRent: '', dueDay: '', adjustmentIndex: '' }
 
 export function emptyNewContract(propertyId = ''): NewContractValues {
-  return {
-    propertyId,
-    occupantMode: 'new',
-    occupant: null,
-    occupantName: '',
-    occupantDocument: '',
-    occupantEmail: '',
-    occupantPhone: '',
-    startDate: '',
-    endDate: '',
-    notes: '',
-    ...EMPTY_RENT_TERMS,
-  }
+  return { propertyId, startDate: '', endDate: '', notes: '', ...EMPTY_OCCUPANT, ...EMPTY_RENT_TERMS }
 }
 
 export function fromContract(contract: Contract): EditContractValues {
@@ -66,11 +56,6 @@ export function fromContract(contract: Contract): EditContractValues {
     adjustmentIndex: contract.rentTerms?.adjustmentIndex ?? '',
   }
 }
-
-const digits = (text: string) => text.replace(/\D/g, '')
-const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-
-type Issue = (path: string, message: string) => void
 
 function checkRentTerms(values: RentTermsValues, issue: Issue) {
   const rent = parseMoney(values.monthlyRent)
@@ -98,23 +83,7 @@ export function newContractSchema(contractTypeOf: (propertyId: string) => Contra
   return z.custom<NewContractValues>().superRefine((values, context) => {
     const issue = issuer(context)
     if (!values.propertyId) issue('propertyId', 'Escolha o imóvel.')
-
-    if (values.occupantMode === 'existing') {
-      if (!values.occupant) issue('occupant', 'Escolha o ocupante, ou cadastre um novo.')
-    } else {
-      if (values.occupantName.trim().length < 2) issue('occupantName', 'Informe o nome (pelo menos 2 letras).')
-      const document = digits(values.occupantDocument)
-      if (values.occupantDocument.trim() && document.length !== 11 && document.length !== 14) {
-        issue('occupantDocument', 'CPF com 11 dígitos ou CNPJ com 14.')
-      }
-      if (values.occupantEmail.trim() && !EMAIL.test(values.occupantEmail.trim())) {
-        issue('occupantEmail', 'E-mail no formato nome@exemplo.com.')
-      }
-      const phone = digits(values.occupantPhone)
-      if (values.occupantPhone.trim() && (phone.length < 10 || phone.length > 15)) {
-        issue('occupantPhone', 'Telefone com DDD, por exemplo (11) 98765-4321.')
-      }
-    }
+    checkOccupant(values, issue)
 
     const start = parseDate(values.startDate)
     if (start === null) issue('startDate', 'Informe o início.')
@@ -151,16 +120,7 @@ export function toCreateRequest(values: NewContractValues, contractType: Contrac
     startDate: parseDate(values.startDate)!,
     endDate: parseDate(values.endDate) ?? null,
     notes: orNull(values.notes),
-    ...(values.occupantMode === 'existing'
-      ? { occupantId: values.occupant!.id }
-      : {
-          occupant: {
-            name: values.occupantName.trim(),
-            document: orNull(digits(values.occupantDocument)),
-            email: orNull(values.occupantEmail),
-            phone: orNull(digits(values.occupantPhone)),
-          },
-        }),
+    ...toOccupantRequest(values),
     rentTerms: contractType === 'conventional' ? rentTermsRequest(values) : null,
   }
 }
@@ -176,13 +136,19 @@ export function toUpdateRequest(values: EditContractValues, contractType: Contra
 
 /** Where a validation error from the API lands in the forms. */
 export const REQUEST_PATH_TO_FIELD: Record<string, keyof NewContractValues> = {
+  ...OCCUPANT_PATH_TO_FIELD,
   propertyId: 'propertyId',
-  occupantId: 'occupant',
-  'occupant.name': 'occupantName',
-  'occupant.document': 'occupantDocument',
-  'occupant.email': 'occupantEmail',
-  'occupant.phone': 'occupantPhone',
   startDate: 'startDate',
+  endDate: 'endDate',
+  rentTerms: 'monthlyRent',
+  'rentTerms.monthlyRentCents': 'monthlyRent',
+  'rentTerms.dueDay': 'dueDay',
+  'rentTerms.adjustmentIndex': 'adjustmentIndex',
+  notes: 'notes',
+}
+
+/** The same paths, limited to what an active contract lets people edit. */
+export const EDIT_REQUEST_PATH_TO_FIELD: Record<string, keyof EditContractValues> = {
   endDate: 'endDate',
   rentTerms: 'monthlyRent',
   'rentTerms.monthlyRentCents': 'monthlyRent',
@@ -193,11 +159,8 @@ export const REQUEST_PATH_TO_FIELD: Record<string, keyof NewContractValues> = {
 
 /** The API answers in English; what a person can act on is said here in Portuguese. */
 const API_MESSAGES: Record<string, string> = {
+  ...OCCUPANT_API_MESSAGES,
   'End date must be after the start date': 'O fim precisa ser depois do início.',
-  'Invalid CPF or CNPJ': 'CPF ou CNPJ inválido.',
-  'Enter the phone number with area code': 'Informe o telefone com DDD.',
-  'Occupant not found': 'Este ocupante não existe mais.',
-  'Send either occupantId or occupant': 'Escolha um ocupante cadastrado ou cadastre um novo.',
   'Conventional contracts need rent terms': 'Informe o aluguel.',
   'Short-stay contracts have no rent terms': 'Contratos de temporada não têm aluguel fixo.',
   'Property not found': 'Este imóvel não existe mais.',
@@ -207,7 +170,6 @@ const API_MESSAGES: Record<string, string> = {
   'Short-stay properties only take short-stay contracts': 'Imóveis de temporada só têm contratos de temporada.',
   'Short-stay contracts need a property with short-stay usage': 'Contratos de temporada são só para imóveis de temporada.',
   'Only active contracts can be changed': 'Só contratos ativos podem ser alterados.',
-  'An occupant with this document already exists': 'Já existe um ocupante com este documento. Escolha-o em "Já cadastrado".',
   'The property already has an active contract': 'Outro contrato acabou de ficar ativo neste imóvel. Recarregue a página e tente de novo.',
   'Only conventional contracts have a PDF': 'Só contratos de locação têm PDF.',
 }

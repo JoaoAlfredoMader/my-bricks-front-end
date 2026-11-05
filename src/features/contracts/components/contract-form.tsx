@@ -1,33 +1,25 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useQuery } from '@tanstack/react-query'
-import { Link, type LinkProps } from '@tanstack/react-router'
-import { CircleAlert, Info } from 'lucide-react'
-import {
-  Controller,
-  type FieldValues,
-  FormProvider,
-  type Path,
-  type UseFormSetError,
-  useForm,
-  useFormContext,
-  useWatch,
-} from 'react-hook-form'
+import type { LinkProps } from '@tanstack/react-router'
+import { Info } from 'lucide-react'
+import { Controller, FormProvider, useForm, useFormContext, useWatch } from 'react-hook-form'
 import { AffixInput } from '@/components/form/affix-input'
-import { ChoiceGroup } from '@/components/form/choice-group'
+import { DateField } from '@/components/form/date-field'
 import { Field } from '@/components/form/field'
+import { FormError } from '@/components/form/form-error'
+import { FormFooter } from '@/components/form/form-footer'
 import { FormSection } from '@/components/form/form-section'
+import { NotesSection } from '@/components/form/notes-section'
 import { OptionSelect } from '@/components/form/option-select'
-import { Textarea } from '@/components/form/textarea'
-import { Button, buttonVariants } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
+import { showApiError } from '@/components/form/show-api-error'
+import { OccupantFields } from '@/features/occupants/components/occupant-fields'
 import type { Property } from '@/features/properties/api/queries'
-import { ApiError } from '@/lib/api/client'
 import { formatNumericDate } from '@/lib/format'
-import { maskDate } from '@/lib/parse'
 import { activeContractQueryOptions, type Contract, type CreateContractRequest, type UpdateContractRequest } from '../api/queries'
 import {
   apiMessageInPortuguese,
   contractErrorMessage,
+  EDIT_REQUEST_PATH_TO_FIELD,
   type EditContractValues,
   editContractSchema,
   type NewContractValues,
@@ -38,79 +30,10 @@ import {
   toUpdateRequest,
 } from '../lib/contract-form'
 import { ADJUSTMENT_INDEX_LABEL, CONTRACT_TYPE_LABEL, contractTypeFor } from '../lib/labels'
-import { OccupantCombobox } from './occupant-combobox'
 
 const ADJUSTMENT_OPTIONS = (Object.entries(ADJUSTMENT_INDEX_LABEL) as [RentTermsValues['adjustmentIndex'] & string, string][]).map(
   ([value, label]) => ({ value, label }),
 )
-
-/** Puts each API validation error under its field; the rest goes to the top of the form. */
-function showApiError<T extends FieldValues>(failure: unknown, setError: UseFormSetError<T>, fields: readonly string[]) {
-  const unplaced: string[] = []
-  if (failure instanceof ApiError && failure.fieldErrors.length > 0) {
-    for (const { path, message } of failure.fieldErrors) {
-      const field = REQUEST_PATH_TO_FIELD[path]
-      if (field && fields.includes(field)) setError(field as Path<T>, { message: apiMessageInPortuguese(message) }, { shouldFocus: true })
-      else unplaced.push(apiMessageInPortuguese(message))
-    }
-  } else {
-    unplaced.push(contractErrorMessage(failure))
-  }
-  if (unplaced.length > 0) setError('root', { message: unplaced.join(' ') })
-}
-
-function FormAlert({ message }: { message: string | undefined }) {
-  if (!message) return null
-  return (
-    <p role="alert" className="flex items-start gap-2 rounded-2xl bg-destructive/10 px-4 py-3 text-sm text-destructive">
-      <CircleAlert className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
-      {message}
-    </p>
-  )
-}
-
-function FormFooter({ cancel, submitLabel, submitting }: { cancel: LinkProps; submitLabel: string; submitting: boolean }) {
-  return (
-    <div className="sticky bottom-0 -mx-4 flex justify-end gap-2 border-t bg-background/90 px-4 py-3 backdrop-blur sm:-mx-8 sm:px-8">
-      <Link {...cancel} className={buttonVariants({ variant: 'ghost', size: 'lg', className: 'h-10 px-5' })}>
-        Cancelar
-      </Link>
-      <Button type="submit" size="lg" className="h-10 px-6" disabled={submitting}>
-        {submitting ? 'Salvando…' : submitLabel}
-      </Button>
-    </div>
-  )
-}
-
-/** A dd/mm/aaaa field that adds the slashes while typing. */
-function DateField<T extends FieldValues>({ name, label, hint }: { name: Path<T>; label: string; hint?: string }) {
-  const { control, formState } = useFormContext<T>()
-  const error = formState.errors[name]?.message as string | undefined
-  return (
-    <Field label={label} error={error} hint={hint}>
-      {(controlProps) => (
-        <Controller
-          control={control}
-          name={name}
-          render={({ field }) => (
-            <Input
-              {...controlProps}
-              className="h-10"
-              inputMode="numeric"
-              placeholder="dd/mm/aaaa"
-              autoComplete="off"
-              name={field.name}
-              ref={field.ref}
-              value={field.value as string}
-              onBlur={field.onBlur}
-              onChange={(event) => field.onChange(maskDate(event.target.value))}
-            />
-          )}
-        />
-      )}
-    </Field>
-  )
-}
 
 function RentTermsFields() {
   const { register, control, formState } = useFormContext<RentTermsValues>()
@@ -149,18 +72,8 @@ function RentTermsFields() {
   )
 }
 
-function NotesField() {
-  const { register } = useFormContext<{ notes: string }>()
-  return (
-    <FormSection title="Observações">
-      <Field label="Observações" className="sm:col-span-2">
-        {(controlProps) => <Textarea {...controlProps} {...register('notes')} />}
-      </Field>
-    </FormSection>
-  )
-}
-
-const NEW_FIELDS = Object.values(REQUEST_PATH_TO_FIELD)
+const NEW_FORM_ERRORS = { fields: REQUEST_PATH_TO_FIELD, translate: apiMessageInPortuguese, fallback: contractErrorMessage }
+const EDIT_FORM_ERRORS = { ...NEW_FORM_ERRORS, fields: EDIT_REQUEST_PATH_TO_FIELD }
 
 interface NewContractFormProps {
   initialValues: NewContractValues
@@ -179,9 +92,9 @@ export function NewContractForm({ initialValues, properties, cancel, onSubmit }:
     resolver: zodResolver(newContractSchema(contractTypeOf)),
     defaultValues: initialValues,
   })
-  const { register, control, setError, handleSubmit, formState } = form
+  const { control, setError, handleSubmit, formState } = form
   const { errors, isSubmitting } = formState
-  const [propertyId, occupantMode] = useWatch({ control, name: ['propertyId', 'occupantMode'] })
+  const propertyId = useWatch({ control, name: 'propertyId' })
   const property = properties.find((p) => p.id === propertyId)
   const contractType = property ? contractTypeFor(property) : undefined
   const active = useQuery(activeContractQueryOptions(propertyId)).data
@@ -190,22 +103,14 @@ export function NewContractForm({ initialValues, properties, cancel, onSubmit }:
     try {
       await onSubmit(toCreateRequest(values, contractTypeOf(values.propertyId)!))
     } catch (failure) {
-      showApiError(failure, setError, NEW_FIELDS)
+      showApiError(failure, setError, NEW_FORM_ERRORS)
     }
   })
-
-  const text = (name: 'occupantName' | 'occupantDocument' | 'occupantEmail' | 'occupantPhone', label: string, extra: { hint?: string; inputMode?: 'email' | 'tel' | 'numeric'; autoComplete?: string } = {}) => (
-    <Field label={label} error={errors[name]?.message} hint={extra.hint}>
-      {(controlProps) => (
-        <Input {...controlProps} className="h-10" inputMode={extra.inputMode} autoComplete={extra.autoComplete ?? 'off'} {...register(name)} />
-      )}
-    </Field>
-  )
 
   return (
     <FormProvider {...form}>
       <form onSubmit={submit} noValidate className="grid gap-4">
-        <FormAlert message={errors.root?.message} />
+        <FormError message={errors.root?.message} />
 
         <FormSection
           title="Imóvel"
@@ -259,48 +164,7 @@ export function NewContractForm({ initialValues, properties, cancel, onSubmit }:
           )}
         </FormSection>
 
-        <FormSection title="Ocupante" description={contractType === 'short_stay' ? 'Quem ocupa o imóvel.' : 'O inquilino.'}>
-          <div className="sm:col-span-2">
-            <Controller
-              control={control}
-              name="occupantMode"
-              render={({ field }) => (
-                <ChoiceGroup
-                  label="Quem é"
-                  value={field.value}
-                  onChange={field.onChange}
-                  options={[
-                    { value: 'new', label: 'Novo' },
-                    { value: 'existing', label: 'Já cadastrado' },
-                  ]}
-                  hint={
-                    field.value === 'new'
-                      ? 'Se o CPF ou CNPJ já estiver cadastrado, o cadastro existente é usado.'
-                      : 'Inquilinos e hóspedes de contratos e reservas anteriores.'
-                  }
-                />
-              )}
-            />
-          </div>
-          {occupantMode === 'existing' ? (
-            <Field label="Ocupante" error={errors.occupant?.message} className="sm:col-span-2">
-              {(controlProps) => (
-                <Controller
-                  control={control}
-                  name="occupant"
-                  render={({ field }) => <OccupantCombobox control={controlProps} value={field.value} onChange={field.onChange} />}
-                />
-              )}
-            </Field>
-          ) : (
-            <>
-              <div className="sm:col-span-2">{text('occupantName', 'Nome', { autoComplete: 'name' })}</div>
-              {text('occupantDocument', 'CPF ou CNPJ', { inputMode: 'numeric', hint: 'Opcional. Pode digitar com ou sem pontos.' })}
-              {text('occupantPhone', 'Telefone', { inputMode: 'tel', hint: 'Opcional, com DDD.' })}
-              <div className="sm:col-span-2">{text('occupantEmail', 'E-mail', { inputMode: 'email', hint: 'Opcional.' })}</div>
-            </>
-          )}
-        </FormSection>
+        <OccupantFields title="Ocupante" description={contractType === 'short_stay' ? 'Quem ocupa o imóvel.' : 'O inquilino.'} />
 
         <FormSection title="Vigência">
           <DateField<NewContractValues> name="startDate" label="Início" />
@@ -308,15 +172,13 @@ export function NewContractForm({ initialValues, properties, cancel, onSubmit }:
         </FormSection>
 
         {contractType !== 'short_stay' && <RentTermsFields />}
-        <NotesField />
+        <NotesSection />
 
         <FormFooter cancel={cancel} submitLabel="Cadastrar contrato" submitting={isSubmitting} />
       </form>
     </FormProvider>
   )
 }
-
-const EDIT_FIELDS = ['endDate', 'notes', 'monthlyRent', 'dueDay', 'adjustmentIndex'] as const
 
 interface EditContractFormProps {
   contract: Contract
@@ -337,19 +199,19 @@ export function EditContractForm({ contract, initialValues, cancel, onSubmit }: 
     try {
       await onSubmit(toUpdateRequest(values, contract.contractType))
     } catch (failure) {
-      showApiError(failure, setError, EDIT_FIELDS)
+      showApiError(failure, setError, EDIT_FORM_ERRORS)
     }
   })
 
   return (
     <FormProvider {...form}>
       <form onSubmit={submit} noValidate className="grid gap-4">
-        <FormAlert message={formState.errors.root?.message} />
+        <FormError message={formState.errors.root?.message} />
         <FormSection title="Vigência" description={`Começou em ${formatNumericDate(contract.startDate)}.`}>
           <DateField<EditContractValues> name="endDate" label="Fim" hint="Deixe em branco para prazo indeterminado." />
         </FormSection>
         {contract.contractType === 'conventional' && <RentTermsFields />}
-        <NotesField />
+        <NotesSection />
         <FormFooter cancel={cancel} submitLabel="Salvar alterações" submitting={formState.isSubmitting} />
       </form>
     </FormProvider>

@@ -5,7 +5,6 @@ export type Contract = Schemas['Contract']
 export type ContractStatus = Contract['status']
 export type ContractType = Contract['contractType']
 export type AdjustmentIndex = NonNullable<NonNullable<Contract['rentTerms']>['adjustmentIndex']>
-export type Occupant = Schemas['Occupant']
 export type CreateContractRequest = Schemas['CreateContractRequest']
 export type UpdateContractRequest = Schemas['UpdateContractRequest']
 
@@ -51,16 +50,6 @@ export function activeContractQueryOptions(propertyId: string) {
       return page.items[0] ?? null
     },
     enabled: propertyId !== '',
-  })
-}
-
-/** Tenants and guests already on file whose name or document matches `search`. */
-export function occupantsQueryOptions(search: string) {
-  return queryOptions({
-    queryKey: ['occupants', search],
-    queryFn: () =>
-      unwrap(api.GET('/api/occupants', { params: { query: { pageSize: 8, ...(search ? { search } : {}) } } })),
-    placeholderData: keepPreviousData,
   })
 }
 
