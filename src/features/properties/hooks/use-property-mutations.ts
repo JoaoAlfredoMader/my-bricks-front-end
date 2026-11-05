@@ -4,11 +4,13 @@ import { api, unwrap } from '@/lib/api/client'
 import { propertyQueryOptions } from '../api/queries'
 import type { PropertyRequest } from '../lib/property-form'
 
-/** Lists, the dashboard, the indicators and the contracts (which name the property) read what was just written. */
+/** Lists, the dashboard, the indicators, the contracts and the reservations (which name the property) read what was just written. */
 function useRefreshAfterWrite() {
   const queryClient = useQueryClient()
   return async () => {
-    await Promise.all(['properties', 'kpis', 'contracts'].map((key) => queryClient.invalidateQueries({ queryKey: [key] })))
+    await Promise.all(
+      ['properties', 'kpis', 'contracts', 'reservations'].map((key) => queryClient.invalidateQueries({ queryKey: [key] })),
+    )
   }
 }
 

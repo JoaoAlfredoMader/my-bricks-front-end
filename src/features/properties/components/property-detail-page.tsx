@@ -6,6 +6,7 @@ import { StatTile } from '@/components/stat-tile'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { PropertyContracts } from '@/features/contracts/components/property-contracts'
 import { takesContracts } from '@/features/contracts/lib/labels'
+import { PropertyReservations } from '@/features/reservations/components/property-reservations'
 import { ApiError } from '@/lib/api/client'
 import { formatArea, formatCompactMoney, formatDate, formatMoney, formatRate, formatWholeMoney } from '@/lib/format'
 import type { Property, PropertyCatalog, PropertyKpis } from '../api/queries'
@@ -246,6 +247,7 @@ export function PropertyDetailPage({ property, kpis, catalog, clientName, canDel
           </DetailCard>
         )}
 
+        {property.usageType === 'short_stay' && <PropertyReservations propertyId={property.id} />}
         {takesContracts(property) && <PropertyContracts propertyId={property.id} />}
         {financing && <FinancingSection propertyId={property.id} financing={financing} />}
       </div>
