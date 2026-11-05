@@ -1,10 +1,10 @@
 import { z } from 'zod'
 import { ApiError } from '@/lib/api/client'
+import { type Issue, issuer } from '@/lib/form-issues'
 import { dateToInput, moneyToInput, parseDate, parseInteger, parseMoney } from '@/lib/parse'
 import {
   checkOccupant,
   EMPTY_OCCUPANT,
-  type Issue,
   OCCUPANT_API_MESSAGES,
   OCCUPANT_PATH_TO_FIELD,
   type OccupantValues,
@@ -72,10 +72,6 @@ function checkEndDate(endDate: string, startDate: string | null | undefined, iss
   const end = parseDate(endDate)
   if (end === undefined) issue('endDate', 'Data no formato dd/mm/aaaa.')
   else if (end && startDate && end <= startDate) issue('endDate', 'O fim precisa ser depois do início.')
-}
-
-function issuer(context: z.RefinementCtx): Issue {
-  return (path, message) => context.addIssue({ code: 'custom', path: [path], message })
 }
 
 /** `contractTypeOf` says what the chosen property takes; the rent fields only count for conventional ones. */

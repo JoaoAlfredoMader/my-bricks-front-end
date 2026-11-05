@@ -1,11 +1,11 @@
 import { z } from 'zod'
 import { ApiError } from '@/lib/api/client'
 import { formatNumericDate } from '@/lib/format'
+import { type Issue, issuer } from '@/lib/form-issues'
 import { dateToInput, moneyToInput, parseDate, parseMoney } from '@/lib/parse'
 import {
   checkOccupant,
   EMPTY_OCCUPANT,
-  type Issue,
   OCCUPANT_API_MESSAGES,
   OCCUPANT_PATH_TO_FIELD,
   type OccupantValues,
@@ -61,10 +61,6 @@ function checkStay(values: StayValues, issue: Issue) {
 
   const total = parseMoney(values.totalAmount)
   if (total === undefined || (total !== null && total < 0)) issue('totalAmount', 'Valor em reais, por exemplo 1.850,00.')
-}
-
-function issuer(context: z.RefinementCtx): Issue {
-  return (path, message) => context.addIssue({ code: 'custom', path: [path], message })
 }
 
 export const newReservationSchema = z.custom<NewReservationValues>().superRefine((values, context) => {

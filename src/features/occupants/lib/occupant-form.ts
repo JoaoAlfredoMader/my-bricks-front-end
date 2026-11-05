@@ -1,3 +1,4 @@
+import type { Issue } from '@/lib/form-issues'
 import type { Occupant } from '../api/queries'
 
 /**
@@ -21,8 +22,6 @@ export const EMPTY_OCCUPANT: OccupantValues = {
   occupantEmail: '',
   occupantPhone: '',
 }
-
-export type Issue = (path: string, message: string) => void
 
 const digits = (text: string) => text.replace(/\D/g, '')
 const orNull = (text: string) => text.trim() || null
