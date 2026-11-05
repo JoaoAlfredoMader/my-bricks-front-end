@@ -172,7 +172,17 @@ A reservation is a stay at a short-stay property (*usage: Temporada*). Like cont
 - **The property page** of a short-stay property lists its five latest reservations, with *Ver todas* and *Nova reserva*.
 - Cancelling is a `POST`, not a `DELETE`, so it works while impersonating.
 
-There is no calendar view yet; the API's `from`/`to` window (stays overlapping a range) is what one would read.
+### Calendar
+
+**`/app/reservas/calendario`** shows the same stays as a month on a timeline: *Lista* and *Calendário* are two tabs of the section. A row per short-stay property (by name, linking to the property), a column per day, and each confirmed stay a bar that is a link to its reservation.
+
+- **The bar runs from the middle of the check-in day to the middle of the check-out day.** A guest arrives during one and leaves during the other, so two stays that meet on a turnover day touch in the middle of it, a 2px hairline apart, and the check-out day is visibly still free for the next: the API's own rule (*the check-out day is free*). A stay that began before the month or goes on after it leaves its edge square and open. The geometry is `lib/calendar.ts`, apart from React, and tested on its own.
+- **A guest's name is written in a bar only when it fits** (estimated from the name's length and the bar's width, never clipped); every bar carries the name, the dates and the nights in its accessible name, and hovering or focusing it opens the whole stay beside it: guest, property, dates, nights, total and whether a contract is linked. The readout is positioned from the bar and closes on scroll.
+- **Columns share the room there is**, no narrower than 30px; below that the month scrolls inside its card, under the property names, which stay put. Weekends are tinted and today is marked in the header.
+- **Month.** *Mês anterior* / *Próximo mês* and *Hoje*; the month is in the URL (`?month=2026-12`, left out for the current month, and a malformed one falls back to it).
+- **Data.** One request per month, `GET /api/reservations?from=<first day>&to=<first day of the next month>&status=confirmed&pageSize=100`: the API's window `[from, to)` keeps the stays that overlap it, which is what a calendar needs. A cancelled stay frees its nights, so it does not show. A page is at most 100 stays; if the month has more, the page says so and points to the list (a month of a handful of short-stay properties is far from it).
+- **No filters on the calendar:** it is the one view that shows every short-stay property side by side; the list has the filters.
+
 
 ## Clients and agencies
 
