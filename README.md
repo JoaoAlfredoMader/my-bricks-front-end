@@ -148,7 +148,17 @@ A contract ties a property to its occupant: a tenant with a monthly rent (*Loca�
 - **The property page** lists the property's five latest contracts, with *Ver todos* and *Novo contrato*.
 - After any change, contracts, properties (their status depends on the active contract) and every indicator are read again. The API's rules come back in Portuguese, under the field when the API names one.
 
-The contract template editor (`/api/contract-template`) is not on these screens yet; the PDF uses whatever template the API holds (its default until the organization saves one).
+### Contract template
+
+**`/app/contratos/modelo`** (*Modelo do contrato*, from the contract list; *Editar o modelo* beside the PDF button on a contract) edits the text every conventional contract's PDF is made of (`GET`/`PUT`/`DELETE /api/contract-template`). There is one template per organization; until it saves its own, the API serves a plain residential lease (the page says it is not legal advice and has to be reviewed).
+
+- **Three parts**, each a small visual editor with its own toolbar: *Cabeçalho* (the title, centered), *Cláusulas* (the body, required) and *Rodapé*. The toolbar offers the only markup the PDF understands: title, subtitle, text, bold, italic, underline, bullet and numbered lists. Pasting always brings plain text, so nothing foreign gets in.
+- **Tokens.** *Marcadores* lists what the API says can be typed (`{{locador}}`, `{{locatario}}`, `{{valor_mensal}}`… with their descriptions); clicking one types it where the cursor is, in the part that was last focused. A token the catalog does not have is flagged as soon as it is typed, with the one it was probably meant for (`{{locadro}}` → `{{locador}}`), since the PDF prints it as written.
+- **Preview.** *Prévia* shows the contract as a page with example data (a made-up landlord, tenant and property); an unknown token stays as typed, as in the PDF. The real PDF uses the data of the contract it is made for.
+- **Saving.** The editor cleans the HTML the way the API does (allowed tags only, no attributes, scripts dropped, a `div` becomes a paragraph; `lib/template-html.ts`), checks that the clauses have text and the lengths (5,000 for the header and footer, 100,000 for the clauses), and sends the three parts. The save button is only on while something changed, *Descartar alterações* starts over from the saved text, and *Voltar ao padrão* (after a confirmation) deletes the organization's template. PDFs already generated do not change: a contract's PDF is generated again to use the new text.
+- **Who.** Only owners and admins write the template (the API answers 403 to a member): a member sees the page read-only, with the preview. *Voltar ao padrão* is a `DELETE`, so it is not offered while impersonating.
+- **How the editor works.** It is a `contenteditable` element driven by `document.execCommand`: deprecated on paper, but the one API every browser still ships for this. The element's text is only ever set once (`RichTextEditor` keeps the first `initialHtml`; the page starts it over with a new `key`), because rewriting it on each keystroke would send the cursor to the start. The tests stub `execCommand`, which jsdom lacks, so what they check is what the editor asks of it and what it sends, not how a browser lays the text out.
+
 
 ## Reservations
 
