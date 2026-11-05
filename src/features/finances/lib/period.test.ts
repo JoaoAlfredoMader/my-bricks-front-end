@@ -1,5 +1,19 @@
 import { describe, expect, it } from 'vitest'
-import { periodRange } from './period'
+import { flowWindowRange, periodRange } from './period'
+
+describe('flowWindowRange', () => {
+  const today = new Date(2026, 10, 5) // 5 Nov 2026
+
+  it('gives the first and last month of each window', () => {
+    expect(flowWindowRange('last-12-months', today)).toEqual({ from: '2025-12', to: '2026-11' })
+    expect(flowWindowRange('this-year', today)).toEqual({ from: '2026-01', to: '2026-12' })
+    expect(flowWindowRange('last-year', today)).toEqual({ from: '2025-01', to: '2025-12' })
+  })
+
+  it('counts the twelve months back across the turn of the year', () => {
+    expect(flowWindowRange('last-12-months', new Date(2026, 0, 20))).toEqual({ from: '2025-02', to: '2026-01' })
+  })
+})
 
 describe('periodRange', () => {
   const today = new Date(2026, 10, 5) // 5 Nov 2026
