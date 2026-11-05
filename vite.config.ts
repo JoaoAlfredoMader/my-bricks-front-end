@@ -31,5 +31,10 @@ export default defineConfig(({ mode }) => ({
     globals: true,
     setupFiles: ['./src/test/setup.ts'],
     css: false,
+    // Every test renders the whole route tree in jsdom; one worker per core starves them and the
+    // slowest time out, so the suite runs on a few workers and stays deterministic.
+    maxWorkers: 4,
+    // The property page fetches a dozen things; the default 5 seconds is too tight for it under load.
+    testTimeout: 15_000,
   },
 }))
