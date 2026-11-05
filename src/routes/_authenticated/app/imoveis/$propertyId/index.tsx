@@ -8,7 +8,7 @@ import {
 } from '@/features/properties/api/queries'
 import { PropertyDetailPage } from '@/features/properties/components/property-detail-page'
 import { PropertyNotFound } from '@/features/properties/components/property-not-found'
-import { loadOrNotFound } from '@/features/properties/lib/load-or-not-found'
+import { loadOrNotFound } from '@/lib/load-or-not-found'
 
 export const Route = createFileRoute('/_authenticated/app/imoveis/$propertyId/')({
   loader: ({ context: { queryClient }, params: { propertyId } }) =>

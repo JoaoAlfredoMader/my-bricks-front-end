@@ -1,11 +1,11 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Link } from '@tanstack/react-router'
 import { CircleAlert } from 'lucide-react'
-import type { ReactNode } from 'react'
 import { Controller, type FieldPath, useForm, useWatch } from 'react-hook-form'
 import { AffixInput } from '@/components/form/affix-input'
 import { ChoiceGroup } from '@/components/form/choice-group'
 import { Field } from '@/components/form/field'
+import { FormSection as Section } from '@/components/form/form-section'
 import { OptionSelect } from '@/components/form/option-select'
 import { SwitchField } from '@/components/form/switch-field'
 import { Textarea } from '@/components/form/textarea'
@@ -36,19 +36,6 @@ import { CityCombobox } from './city-combobox'
 
 function entries<T extends string>(labels: Record<T, string>) {
   return (Object.entries(labels) as [T, string][]).map(([value, label]) => ({ value, label }))
-}
-
-function Section({ title, description, children }: { title: string; description?: string; children: ReactNode }) {
-  const id = `form-${title.toLowerCase().replace(/\W+/g, '-')}`
-  return (
-    <section aria-labelledby={id} className="rounded-2xl border bg-card p-5 sm:p-6">
-      <h2 id={id} className="font-semibold">
-        {title}
-      </h2>
-      {description && <p className="mt-1 text-sm text-muted-foreground">{description}</p>}
-      <div className="mt-5 grid gap-x-4 gap-y-5 sm:grid-cols-2">{children}</div>
-    </section>
-  )
 }
 
 interface PropertyFormProps {

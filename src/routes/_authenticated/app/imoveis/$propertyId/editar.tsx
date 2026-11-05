@@ -9,7 +9,7 @@ import {
 import { PropertyFormPage } from '@/features/properties/components/property-form-page'
 import { PropertyNotFound } from '@/features/properties/components/property-not-found'
 import { useUpdateProperty } from '@/features/properties/hooks/use-property-mutations'
-import { loadOrNotFound } from '@/features/properties/lib/load-or-not-found'
+import { loadOrNotFound } from '@/lib/load-or-not-found'
 import { fromProperty } from '@/features/properties/lib/property-form'
 
 export const Route = createFileRoute('/_authenticated/app/imoveis/$propertyId/editar')({

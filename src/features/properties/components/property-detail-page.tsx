@@ -1,6 +1,7 @@
 import { Link } from '@tanstack/react-router'
 import { ArrowLeft, MapPin, Pencil, Trash2 } from 'lucide-react'
 import { ConfirmDialog } from '@/components/confirm-dialog'
+import { DetailCard } from '@/components/detail-card'
 import { StatTile } from '@/components/stat-tile'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { ApiError } from '@/lib/api/client'
@@ -14,7 +15,6 @@ import {
   USAGE_LABEL,
 } from '../lib/labels'
 import { useDeleteProperty } from '../hooks/use-property-mutations'
-import { DetailCard } from './detail-card'
 import { DocumentList } from './document-list'
 import { FinancingSection } from './financing-section'
 import { PhotoGallery } from './photo-gallery'
