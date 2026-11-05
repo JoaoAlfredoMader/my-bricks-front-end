@@ -640,7 +640,7 @@ export interface paths {
         };
         /**
          * List transactions
-         * @description One-off or monthly-recurring revenues and expenses that are not rent.
+         * @description One-off or monthly-recurring revenues and expenses that are not rent. With `from` / `to`, recurring transactions are kept when their monthly occurrences touch the period (the end date counts by month, inclusive), not only when `occurredOn` is inside it.
          */
         get: operations["listTransactions"];
         put?: never;
@@ -683,6 +683,38 @@ export interface paths {
          * @description Calculated on every request from the stored data: NOI, gross yield, cap rate (as fractions) and IRR per property, with totals weighted by ownership share.
          */
         get: operations["getPortfolioKpis"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/kpis/cash-flow": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Monthly cash flow
+         * @description Revenue and expenses month by month for a window of up to 36 months (`from` and `to` as YYYY-MM, both included; empty months come back as zeros). Calculated on every request, so a recurring transaction, which is one record, is expanded here instead of in the client. Everything is in integer cents.
+         *
+         *     **Revenue.** `rentCents` is the rent in force in the month, with the same source the indicators use (the rent typed on the property in manual mode, the conventional contract in contract mode) times the expected occupancy rate; a contract counts from its first to its last month, both included, and a replacement wins the month it starts. Short-stay properties earn from bookings instead: `reservationsCents` takes the confirmed reservations whose check-in is in the month, in full (they are not spread over the nights). `transactionsCents` takes the revenue transactions: one-off ones in the month they occurred and recurring ones in every month from the first until the month of the end (inclusive, or without end), the same reading the IRR and the transactions period filter use.
+         *
+         *     **Expenses.** `fixedCents` is the annual expenses of the property divided by 12; `transactionsCents` are the expense transactions, with the same month rules.
+         *
+         *     **Own use and loan for use** produce no income. Without `propertyId` they are left out entirely (no rent, bookings, fixed expenses or transactions), exactly as `/api/kpis/portfolio` leaves them out of the portfolio income and expenses. With `propertyId` the property is shown as it is: no rent or bookings, but its fixed expenses and transactions still count, as in `/api/kpis/properties/{id}`.
+         *
+         *     **Ownership.** Without `propertyId`, the amounts of each property are weighted by its ownership percentage before being added, like `/api/kpis/portfolio`. With `propertyId`, the values are those of the whole property, like `/api/kpis/properties/{id}`.
+         *
+         *     **Financing.** The financing schedule is not added automatically: an installment is already a transaction (category "Parcela de financiamento") when the owner records it, and adding both would count it twice.
+         *
+         *     Members only see the properties they created.
+         */
+        get: operations["getCashFlow"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1213,6 +1245,45 @@ export interface components {
                 vacant: number;
             };
             properties: components["schemas"]["PropertyKpis"][];
+        };
+        CashFlow: {
+            /** @description Calendar month, YYYY-MM */
+            from: string;
+            /** @description Calendar month, YYYY-MM */
+            to: string;
+            /** @description One item per month of the window, in order, including months with nothing (all zeros) */
+            months: {
+                /** @description Calendar month, YYYY-MM */
+                month: string;
+                revenue: {
+                    /** @description Rent in force that month: the typed rent (manual mode) or the conventional contract in force (contract mode), times the expected occupancy rate. Zero for short-stay properties, whose income is the bookings */
+                    rentCents: number;
+                    /** @description Confirmed bookings of short-stay properties, in full in the month of the check-in (no spreading over the nights; the occupancy rate does not apply) */
+                    reservationsCents: number;
+                    /** @description Revenue transactions: one-off ones in their month, recurring ones in every month until the month of their end, inclusive */
+                    transactionsCents: number;
+                    /** @description rentCents + reservationsCents + transactionsCents */
+                    totalCents: number;
+                };
+                expenses: {
+                    /** @description The annual expenses of the property divided by 12, the same amount every month (rounded to the cent). Own use and loan for use appear only when a single property is asked for; the portfolio leaves them out */
+                    fixedCents: number;
+                    /** @description Expense transactions, with the same month rules as the revenue ones. Financing installments recorded as transactions are here */
+                    transactionsCents: number;
+                    /** @description fixedCents + transactionsCents */
+                    totalCents: number;
+                };
+                /** @description Revenue minus expenses of the month (negative when expenses are larger) */
+                netCents: number;
+            }[];
+            totals: {
+                /** @description Sum of the monthly total revenue */
+                revenueCents: number;
+                /** @description Sum of the monthly total expenses */
+                expensesCents: number;
+                /** @description revenueCents - expensesCents */
+                netCents: number;
+            };
         };
         FinancingSchedule: {
             /** @description Calendar date, YYYY-MM-DD */
@@ -4415,7 +4486,9 @@ export interface operations {
                 categoryId?: number;
                 type?: "revenue" | "expense";
                 isRecurring?: "true" | "false";
+                /** @description Start of the period (YYYY-MM-DD, inclusive). Together with `to` it keeps one-off transactions whose `occurredOn` is inside the period, and recurring ones whose monthly occurrences touch it: they started on or before `to` and have no end date or end in the month of `from` or later (the end counts by month, inclusive, as in the IRR). */
                 from?: string;
+                /** @description End of the period (YYYY-MM-DD, inclusive). See `from`. */
                 to?: string;
             };
             header?: never;
@@ -4676,6 +4749,60 @@ export interface operations {
             };
             /** @description There is no valid session */
             401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    getCashFlow: {
+        parameters: {
+            query: {
+                /** @description First month of the window (YYYY-MM) */
+                from: string;
+                /** @description Last month of the window (YYYY-MM), included. The window has at most 36 months */
+                to: string;
+                /** @description Only this property, as a whole (not weighted by ownership share). Without it: the whole portfolio the caller can see, weighted by ownership share */
+                propertyId?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description One item per month and the totals */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CashFlow"];
+                };
+            };
+            /** @description The request is not valid: bad input, malformed JSON or a rule that spans several fields */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description There is no valid session */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description The record does not exist, or it is outside what the caller may see (another organization, or another member's record) */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };
