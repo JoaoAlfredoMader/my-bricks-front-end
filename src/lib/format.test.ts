@@ -5,8 +5,10 @@ import {
   formatBytes,
   formatCompactMoney,
   formatDate,
+  formatDocument,
   formatMoney,
   formatNumericDate,
+  formatPhone,
   formatRate,
   formatTimeUntil,
   formatWholeMoney,
@@ -52,6 +54,15 @@ describe('format', () => {
     expect(formatTimeUntil(new Date('2026-11-04T13:00:00Z'), now)).toBe('em 1 hora')
     expect(formatTimeUntil(new Date('2026-11-04T12:40:00Z'), now)).toBe('em 40 minutos')
     expect(formatTimeUntil(new Date('2026-11-04T11:00:00Z'), now)).toBe('em instantes')
+  })
+
+  it('formats CPF, CNPJ and phone numbers', () => {
+    expect(formatDocument('12345678909')).toBe('123.456.789-09')
+    expect(formatDocument('12345678000195')).toBe('12.345.678/0001-95')
+    expect(formatDocument('X-1')).toBe('X-1')
+    expect(formatPhone('11987654321')).toBe('(11) 98765-4321')
+    expect(formatPhone('1134567890')).toBe('(11) 3456-7890')
+    expect(formatPhone('+44 20 7946 0958')).toBe('+44 20 7946 0958')
   })
 
   it('reads a date as a calendar day', () => {

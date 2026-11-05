@@ -8,6 +8,7 @@ import {
   parseDecimal,
   parseInteger,
   parseMoney,
+  todayInput,
 } from './parse'
 
 describe('parse', () => {
@@ -53,5 +54,6 @@ describe('parse', () => {
     expect(decimalToInput(null)).toBe('')
     expect(moneyToInput(68_000_000)).toBe('680.000,00')
     expect(dateToInput('2021-05-14')).toBe('14/05/2021')
+    expect(todayInput(new Date(2026, 10, 5, 23, 30))).toBe('05/11/2026')
   })
 })

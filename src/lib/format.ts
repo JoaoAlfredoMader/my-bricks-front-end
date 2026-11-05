@@ -75,6 +75,22 @@ export function formatDate(day: string): string {
   return longDate.format(new Date(`${day}T00:00:00Z`))
 }
 
+/** 12345678909 → 123.456.789-09 (CPF), 14 digits → 12.345.678/0001-95 (CNPJ); anything else as stored. */
+export function formatDocument(document: string): string {
+  const digits = document.replace(/\D/g, '')
+  if (digits.length === 11) return digits.replace(/^(\d{3})(\d{3})(\d{3})(\d{2})$/, '$1.$2.$3-$4')
+  if (digits.length === 14) return digits.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, '$1.$2.$3/$4-$5')
+  return document
+}
+
+/** 11987654321 → (11) 98765-4321, 1134567890 → (11) 3456-7890; anything else as stored. */
+export function formatPhone(phone: string): string {
+  const digits = phone.replace(/\D/g, '')
+  if (digits.length === 11) return digits.replace(/^(\d{2})(\d{5})(\d{4})$/, '($1) $2-$3')
+  if (digits.length === 10) return digits.replace(/^(\d{2})(\d{4})(\d{4})$/, '($1) $2-$3')
+  return phone
+}
+
 const numericDate = new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short', timeZone: 'UTC' })
 
 /** 04/11/2026 — the calendar day for tables, where the long form is too wide. */

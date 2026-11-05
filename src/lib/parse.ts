@@ -64,6 +64,12 @@ export function moneyToInput(cents: number | null | undefined): string {
   return cents === null || cents === undefined ? '' : moneyInput.format(cents / 100)
 }
 
+/** Today on the viewer's calendar, as typed in a date field: "05/11/2026". */
+export function todayInput(now: Date = new Date()): string {
+  const pad = (value: number) => String(value).padStart(2, '0')
+  return `${pad(now.getDate())}/${pad(now.getMonth() + 1)}/${now.getFullYear()}`
+}
+
 /** "2021-05-14" → "14/05/2021" for an input; null → "". */
 export function dateToInput(day: string | null | undefined): string {
   if (!day) return ''
