@@ -4,19 +4,10 @@ import { ConfirmDialog } from '@/components/confirm-dialog'
 import { StatTile } from '@/components/stat-tile'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { ApiError } from '@/lib/api/client'
-import {
-  formatAnnualPercent,
-  formatArea,
-  formatCompactMoney,
-  formatDate,
-  formatMoney,
-  formatRate,
-  formatWholeMoney,
-} from '@/lib/format'
+import { formatArea, formatCompactMoney, formatDate, formatMoney, formatRate, formatWholeMoney } from '@/lib/format'
 import type { Property, PropertyCatalog, PropertyKpis } from '../api/queries'
 import {
   ACQUISITION_LABEL,
-  AMORTIZATION_LABEL,
   CONSERVATION_LABEL,
   IRR_UNAVAILABLE,
   PROPERTY_TYPE_LABEL,
@@ -25,6 +16,7 @@ import {
 import { useDeleteProperty } from '../hooks/use-property-mutations'
 import { DetailCard } from './detail-card'
 import { DocumentList } from './document-list'
+import { FinancingSection } from './financing-section'
 import { PhotoGallery } from './photo-gallery'
 import { StatusBadge } from './status-badge'
 
@@ -229,20 +221,6 @@ export function PropertyDetailPage({ property, kpis, catalog, clientName, canDel
           />
         )}
 
-        {financing && (
-          <DetailCard
-            title="Financiamento"
-            items={[
-              { label: 'Credor', value: financing.lender },
-              { label: 'Valor financiado', value: formatWholeMoney(financing.financedAmountCents) },
-              { label: 'Prazo', value: `${financing.termMonths} meses` },
-              { label: 'Juros', value: formatAnnualPercent(financing.annualInterestRate) },
-              { label: 'Amortização', value: AMORTIZATION_LABEL[financing.amortizationSystem] },
-              { label: 'Primeira parcela', value: formatDate(financing.firstInstallmentOn) },
-            ]}
-          />
-        )}
-
         <DetailCard
           title="Documentação"
           items={[
@@ -265,6 +243,8 @@ export function PropertyDetailPage({ property, kpis, catalog, clientName, canDel
             <p className="mt-3 text-sm whitespace-pre-line">{property.notes}</p>
           </DetailCard>
         )}
+
+        {financing && <FinancingSection propertyId={property.id} financing={financing} />}
       </div>
 
       <div className="mt-4">

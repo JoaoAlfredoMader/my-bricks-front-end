@@ -45,6 +45,19 @@ export function propertyKpisQueryOptions(id: string) {
   })
 }
 
+export type FinancingSchedule = Schemas['FinancingSchedule']
+export type Installment = FinancingSchedule['installments'][number]
+
+/** Every installment of the property's financing and where it stands today (the API's today). */
+export function financingScheduleQueryOptions(id: string) {
+  return queryOptions({
+    queryKey: ['properties', 'financing-schedule', id],
+    queryFn: () => unwrap(api.GET('/api/properties/{id}/financing-schedule', { params: { path: { id } } })),
+    // The card offers its own retry, so one quiet attempt is enough.
+    retry: 1,
+  })
+}
+
 /** Property types with their subtypes; it changes with a deploy, not with use. */
 export const propertyCatalogQueryOptions = queryOptions({
   queryKey: ['lookups', 'property-catalog'],

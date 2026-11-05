@@ -37,7 +37,7 @@ export function useDeleteProperty(id: string) {
     onSuccess: async () => {
       await navigate({ to: '/app/imoveis' })
       queryClient.removeQueries({ queryKey: propertyQueryOptions(id).queryKey })
-      for (const part of ['photos', 'documents']) queryClient.removeQueries({ queryKey: ['properties', part, id] })
+      for (const part of ['photos', 'documents', 'financing-schedule']) queryClient.removeQueries({ queryKey: ['properties', part, id] })
       await refresh()
     },
   })

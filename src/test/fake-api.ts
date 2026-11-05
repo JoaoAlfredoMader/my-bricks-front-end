@@ -2,7 +2,7 @@ import { vi } from 'vitest'
 import type { Session } from '@/features/auth/api/session'
 import type { PortfolioKpis, PropertyKpis } from '@/features/dashboard/api/portfolio-kpis'
 import type { Photo, PropertyDocument } from '@/features/properties/api/files'
-import type { Property, PropertyCatalog } from '@/features/properties/api/queries'
+import type { FinancingSchedule, Property, PropertyCatalog } from '@/features/properties/api/queries'
 import type { PropertyRequest as PropertyRequestBody } from '@/features/properties/lib/property-form'
 
 export function makeSession(overrides: Partial<Omit<Session, 'user'>> & { user?: Partial<Session['user']> } = {}): Session {
@@ -131,6 +131,57 @@ export function makePropertyRecord(overrides: Partial<Property> = {}): Property 
     createdAt: '2026-11-04T12:00:00.000Z',
     updatedAt: '2026-11-04T12:00:00.000Z',
     ...overrides,
+  }
+}
+
+/** `YYYY-MM-DD` plus `months`, keeping the day (tests use days that every month has). */
+function addMonths(day: string, months: number) {
+  const total = Number(day.slice(0, 4)) * 12 + Number(day.slice(5, 7)) - 1 + months
+  return `${Math.floor(total / 12)}-${String((total % 12) + 1).padStart(2, '0')}${day.slice(7)}`
+}
+
+/**
+ * A SAC schedule with round numbers, so tests can read the amounts: R$ 12.000 in 24 months
+ * at 1% a month by default, with `paid` installments already due on `asOf`.
+ */
+export function makeFinancingSchedule({
+  financedAmountCents = 1_200_000,
+  termMonths = 24,
+  firstInstallmentOn = '2026-01-10',
+  monthlyRate = 0.01,
+  paid = 0,
+}: { financedAmountCents?: number; termMonths?: number; firstInstallmentOn?: string; monthlyRate?: number; paid?: number } = {}): FinancingSchedule {
+  const amortization = Math.round(financedAmountCents / termMonths)
+  let balance = financedAmountCents
+  const installments = Array.from({ length: termMonths }, (_, i) => {
+    const interest = Math.round(balance * monthlyRate)
+    const amortizationCents = i === termMonths - 1 ? balance : amortization
+    balance -= amortizationCents
+    return {
+      number: i + 1,
+      dueOn: addMonths(firstInstallmentOn, i),
+      installmentCents: amortizationCents + interest,
+      interestCents: interest,
+      amortizationCents,
+      balanceCents: balance,
+    }
+  })
+  const done = installments.slice(0, paid)
+  return {
+    asOf: paid > 0 ? done.at(-1)!.dueOn : addMonths(firstInstallmentOn, -1),
+    amortizationSystem: 'sac',
+    financedAmountCents,
+    termMonths,
+    annualInterestRate: monthlyRate * 1200,
+    summary: {
+      paidInstallments: paid,
+      remainingInstallments: termMonths - paid,
+      outstandingBalanceCents: done.at(-1)?.balanceCents ?? financedAmountCents,
+      totalPaidCents: done.reduce((sum, row) => sum + row.installmentCents, 0),
+      totalInterestCents: installments.reduce((sum, row) => sum + row.interestCents, 0),
+      nextInstallment: installments[paid] ?? null,
+    },
+    installments,
   }
 }
 
@@ -288,6 +339,19 @@ export function fakeApi({
     if (property) {
       const found = state.properties.find((p) => p.id === property[1])
       return found ? json(found) : json(NOT_FOUND, 404)
+    }
+    const schedule = /^\/api\/properties\/([^/]+)\/financing-schedule$/.exec(pathname)
+    if (schedule) {
+      const financing = state.properties.find((p) => p.id === schedule[1])?.financing
+      if (!financing) return json(NOT_FOUND, 404)
+      return json(
+        makeFinancingSchedule({
+          financedAmountCents: financing.financedAmountCents,
+          termMonths: financing.termMonths,
+          firstInstallmentOn: financing.firstInstallmentOn,
+          monthlyRate: financing.annualInterestRate / 1200,
+        }),
+      )
     }
     const kpi = /^\/api\/kpis\/properties\/([^/]+)$/.exec(pathname)
     if (kpi) {

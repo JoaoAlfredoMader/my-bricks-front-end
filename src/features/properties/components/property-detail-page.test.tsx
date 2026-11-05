@@ -39,18 +39,10 @@ describe('Property detail', () => {
     expect(card('Aquisição')).toEqual({ Forma: 'Compra', Data: '14 de maio de 2021', Custo: 'R$ 520.000' })
   })
 
-  it('shows financing, manual rent and an irregular registry when there are any', async () => {
+  it('shows manual rent and an irregular registry when there are any', async () => {
     const property = makePropertyRecord({
       rentalMode: 'manual',
       manualRental: { tenantName: 'João Lima', monthlyRentCents: 185_000, dueDay: 10 },
-      financing: {
-        lender: 'Caixa',
-        financedAmountCents: 36_000_000,
-        termMonths: 360,
-        annualInterestRate: 9.5,
-        amortizationSystem: 'sac',
-        firstInstallmentOn: '2021-06-13',
-      },
       legalRecord: {
         registrationStatus: 'irregular',
         irregularityDescription: 'Averbação pendente',
@@ -64,14 +56,6 @@ describe('Property detail', () => {
     renderRoute(`/app/imoveis/${property.id}`)
 
     await screen.findByRole('heading', { level: 1, name: 'Apartamento Centro' })
-    expect(card('Financiamento')).toEqual({
-      Credor: 'Caixa',
-      'Valor financiado': 'R$ 360.000',
-      Prazo: '360 meses',
-      Juros: '9,5% a.a.',
-      Amortização: 'SAC',
-      'Primeira parcela': '13 de junho de 2021',
-    })
     expect(card('Locação')).toMatchObject({ Inquilino: 'João Lima', 'Aluguel mensal': 'R$ 1.850,00', Vencimento: 'Dia 10' })
     expect(card('Documentação')).toMatchObject({ Registro: 'Irregular: Averbação pendente', Seguro: 'Sem seguro' })
     expect(screen.getByRole('region', { name: 'Observações' })).toHaveTextContent('Próximo ao metrô.')
