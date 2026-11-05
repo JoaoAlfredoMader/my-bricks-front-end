@@ -4,6 +4,8 @@ import { ConfirmDialog } from '@/components/confirm-dialog'
 import { DetailCard } from '@/components/detail-card'
 import { StatTile } from '@/components/stat-tile'
 import { Button, buttonVariants } from '@/components/ui/button'
+import { PropertyContracts } from '@/features/contracts/components/property-contracts'
+import { takesContracts } from '@/features/contracts/lib/labels'
 import { ApiError } from '@/lib/api/client'
 import { formatArea, formatCompactMoney, formatDate, formatMoney, formatRate, formatWholeMoney } from '@/lib/format'
 import type { Property, PropertyCatalog, PropertyKpis } from '../api/queries'
@@ -244,6 +246,7 @@ export function PropertyDetailPage({ property, kpis, catalog, clientName, canDel
           </DetailCard>
         )}
 
+        {takesContracts(property) && <PropertyContracts propertyId={property.id} />}
         {financing && <FinancingSection propertyId={property.id} financing={financing} />}
       </div>
 
