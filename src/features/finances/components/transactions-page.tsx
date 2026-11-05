@@ -10,6 +10,7 @@ import { formatNumericDate } from '@/lib/format'
 import { type TransactionFilters, transactionCategoriesQueryOptions, transactionsQueryOptions } from '../api/queries'
 import { RECURRING_LABEL, recurrence, signedAmount, TRANSACTION_TYPE_LABEL } from '../lib/labels'
 import { PERIOD_LABEL } from '../lib/period'
+import { CashFlowSection } from './cash-flow-section'
 import { TransactionTypeBadge } from './transaction-type-badge'
 
 interface TransactionsPageProps {
@@ -62,7 +63,14 @@ export function TransactionsPage({ filters, onFiltersChange }: TransactionsPageP
         </span>
       </p>
 
-      <div role="search" className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+      <CashFlowSection
+        className="mt-6"
+        window={filters.flow ?? 'last-12-months'}
+        onWindowChange={(flow) => onFiltersChange({ ...filters, flow: flow === 'last-12-months' ? undefined : flow })}
+      />
+
+      <h2 className="mt-10 font-semibold">Lançamentos</h2>
+      <div role="search" className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
         <FilterSelect
           label="Tipo"
           allLabel="Receitas e despesas"
@@ -102,12 +110,6 @@ export function TransactionsPage({ filters, onFiltersChange }: TransactionsPageP
           onChange={(period) => set({ period })}
         />
       </div>
-      {filters.period && (
-        <p className="mt-2 text-xs text-muted-foreground">
-          Um lançamento recorrente entra no período pela data da primeira ocorrência, como a API filtra.
-        </p>
-      )}
-
       <section
         aria-label="Lista de lançamentos"
         aria-busy={list.isFetching}
@@ -174,7 +176,7 @@ export function TransactionsPage({ filters, onFiltersChange }: TransactionsPageP
               {filtered ? 'Tire algum filtro para ver mais.' : 'Reformas, obras, indenizações e outras receitas e despesas aparecem aqui.'}
             </p>
             {filtered && (
-              <Button variant="outline" onClick={() => onFiltersChange({ page: 1 })}>
+              <Button variant="outline" onClick={() => onFiltersChange({ page: 1, flow: filters.flow })}>
                 Limpar filtros
               </Button>
             )}

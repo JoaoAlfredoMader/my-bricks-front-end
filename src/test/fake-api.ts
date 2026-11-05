@@ -2,7 +2,7 @@ import { vi } from 'vitest'
 import type { Session } from '@/features/auth/api/session'
 import type { Agency, Client } from '@/features/clients/api/queries'
 import type { Contract, CreateContractRequest } from '@/features/contracts/api/queries'
-import type { CreateTransactionRequest, Transaction, TransactionCategory } from '@/features/finances/api/queries'
+import type { CashFlow, CreateTransactionRequest, Transaction, TransactionCategory } from '@/features/finances/api/queries'
 import type { Occupant } from '@/features/occupants/api/queries'
 import type { CreateReservationRequest, Reservation } from '@/features/reservations/api/queries'
 import type { PortfolioKpis, PropertyKpis } from '@/features/dashboard/api/portfolio-kpis'
@@ -147,6 +147,40 @@ export const TRANSACTION_CATEGORIES: TransactionCategory[] = [
   { id: 6, transactionType: 'expense', name: 'Parcela de financiamento' },
   { id: 7, transactionType: 'expense', name: 'Reforma' },
 ]
+
+/** What a test says about one month of the cash flow; the rest is zero. Amounts in cents. */
+interface MonthFigures {
+  rent?: number
+  reservations?: number
+  revenueTransactions?: number
+  fixed?: number
+  expenseTransactions?: number
+}
+
+/**
+ * GET /api/kpis/cash-flow: one item per month from `from` to `to` (YYYY-MM, both included), every
+ * figure zero unless `figures` gives it, with the totals added up like the API does.
+ */
+export function makeCashFlow(from: string, to: string, figures: Record<string, MonthFigures> = {}): CashFlow {
+  const start = Number(from.slice(0, 4)) * 12 + Number(from.slice(5, 7)) - 1
+  const end = Number(to.slice(0, 4)) * 12 + Number(to.slice(5, 7)) - 1
+  const months = Array.from({ length: end - start + 1 }, (_, offset) => {
+    const index = start + offset
+    const month = `${Math.floor(index / 12)}-${String((index % 12) + 1).padStart(2, '0')}`
+    const { rent = 0, reservations = 0, revenueTransactions = 0, fixed = 0, expenseTransactions = 0 } = figures[month] ?? {}
+    const revenue = rent + reservations + revenueTransactions
+    const expenses = fixed + expenseTransactions
+    return {
+      month,
+      revenue: { rentCents: rent, reservationsCents: reservations, transactionsCents: revenueTransactions, totalCents: revenue },
+      expenses: { fixedCents: fixed, transactionsCents: expenseTransactions, totalCents: expenses },
+      netCents: revenue - expenses,
+    }
+  })
+  const revenueCents = months.reduce((total, m) => total + m.revenue.totalCents, 0)
+  const expensesCents = months.reduce((total, m) => total + m.expenses.totalCents, 0)
+  return { from, to, months, totals: { revenueCents, expensesCents, netCents: revenueCents - expensesCents } }
+}
 
 let transactionSeq = 0
 
@@ -548,7 +582,10 @@ export function fakeApi({
     return undefined
   }
 
-  /** Transactions, kept in `state.transactions`; the period filter looks at the first occurrence, as the API's does. */
+  /**
+   * Transactions, kept in `state.transactions`. Like the API's, the period keeps a recurring one while its
+   * monthly run touches it (started by `to`, not ended before the month of `from`).
+   */
   function transactionRoutes(method: string, pathname: string, query: URLSearchParams, body: unknown): Response | undefined {
     const categorized = (categoryId: number) => {
       const category = TRANSACTION_CATEGORIES.find((c) => c.id === categoryId)!
@@ -564,7 +601,12 @@ export function fakeApi({
         .filter((t) => !query.get('categoryId') || t.categoryId === Number(query.get('categoryId')))
         .filter((t) => !query.get('type') || t.type === query.get('type'))
         .filter((t) => !query.get('isRecurring') || String(t.isRecurring) === query.get('isRecurring'))
-        .filter((t) => (!from || t.occurredOn >= from) && (!to || t.occurredOn <= to))
+        .filter((t) => {
+          if (!t.isRecurring) return (!from || t.occurredOn >= from) && (!to || t.occurredOn <= to)
+          const started = !to || t.occurredOn <= to
+          const notEnded = !from || t.recurrenceEndsOn === null || t.recurrenceEndsOn.slice(0, 7) >= from.slice(0, 7)
+          return started && notEnded
+        })
         .sort((a, b) => b.occurredOn.localeCompare(a.occurredOn))
       return json({ items: matches.slice((page - 1) * pageSize, page * pageSize), page, pageSize, total: matches.length })
     }
@@ -752,6 +794,11 @@ export function fakeApi({
     'GET /api/kpis/portfolio': () => (state.session ? json(state.kpis) : json(UNAUTHENTICATED, 401)),
     'GET /api/lookups/property-catalog': () => json(CATALOG),
     'GET /api/lookups/transaction-categories': () => json(TRANSACTION_CATEGORIES),
+    // Every month empty; a test that cares about the figures gives its own handler.
+    'GET /api/kpis/cash-flow': (request) => {
+      const query = new URL(request.url).searchParams
+      return json(makeCashFlow(query.get('from') ?? '2026-01', query.get('to') ?? '2026-12'))
+    },
     'GET /api/auth/organization/get-full-organization': () => {
       if (!state.session) return json(null)
       const isDemo = state.session.user.isAnonymous

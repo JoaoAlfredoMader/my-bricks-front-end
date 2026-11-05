@@ -17,6 +17,7 @@ const searchSchema = z.object({
   propertyId: z.uuid().optional().catch(undefined),
   recurring: z.enum(['true', 'false']).optional().catch(undefined),
   period: z.enum(['this-month', 'last-month', 'this-year', 'last-12-months']).optional().catch(undefined),
+  flow: z.enum(['last-12-months', 'this-year', 'last-year']).optional().catch(undefined),
 })
 
 export const Route = createFileRoute('/_authenticated/app/financas/')({

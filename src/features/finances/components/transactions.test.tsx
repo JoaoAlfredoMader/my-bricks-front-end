@@ -64,7 +64,26 @@ describe('Transaction list', { timeout: 20_000 }, () => {
     await waitFor(() => expect(router.state.location.search).toEqual({ type: 'expense', period: 'this-year' }))
     const last = api.callsTo('/api/transactions').at(-1)!
     expect([last.query.get('from'), last.query.get('to'), last.query.get('type')]).toEqual(['2026-01-01', '2026-12-31', 'expense'])
-    expect(screen.getByText(/entra no período pela data da primeira ocorrência/)).toBeInTheDocument()
+  })
+
+  it('keeps a monthly transaction that started before the period while it is still running', async () => {
+    const user = userEvent.setup()
+    fakeApi({
+      session: makeSession(),
+      transactions: [
+        makeTransaction({ categoryId: 6, categoryName: 'Parcela de financiamento', occurredOn: '2021-06-13', description: null, isRecurring: true }),
+        makeTransaction({ categoryId: 8, categoryName: 'Obra', occurredOn: '2022-01-10', description: null, isRecurring: true, recurrenceEndsOn: '2023-06-10' }),
+        makeTransaction({ occurredOn: '2025-03-01', description: null }),
+      ],
+    })
+    renderRoute('/app/financas')
+
+    await screen.findByRole('heading', { level: 1, name: 'Finanças' })
+    await user.click(screen.getByRole('combobox', { name: 'Período' }))
+    await user.click(await screen.findByRole('option', { name: 'Este ano' }))
+    await waitFor(() => expect(rows()).toHaveLength(1))
+    expect(rows()[0]).toContain('Parcela de financiamento')
+    expect(rows()[0]).toContain('Mensal, sem data para acabar')
   })
 
   it('says so when there is nothing to list', async () => {
