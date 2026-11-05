@@ -2,6 +2,7 @@ import { vi } from 'vitest'
 import type { Session } from '@/features/auth/api/session'
 import type { Agency, Client } from '@/features/clients/api/queries'
 import type { Contract, CreateContractRequest } from '@/features/contracts/api/queries'
+import type { CreateTransactionRequest, Transaction, TransactionCategory } from '@/features/finances/api/queries'
 import type { Occupant } from '@/features/occupants/api/queries'
 import type { CreateReservationRequest, Reservation } from '@/features/reservations/api/queries'
 import type { PortfolioKpis, PropertyKpis } from '@/features/dashboard/api/portfolio-kpis'
@@ -134,6 +135,38 @@ export function makePropertyRecord(overrides: Partial<Property> = {}): Property 
     createdById: 'user-1',
     createdAt: '2026-11-04T12:00:00.000Z',
     updatedAt: '2026-11-04T12:00:00.000Z',
+    ...overrides,
+  }
+}
+
+/** A few of the API's categories: the category decides revenue or expense. */
+export const TRANSACTION_CATEGORIES: TransactionCategory[] = [
+  { id: 4, transactionType: 'revenue', name: 'Indenização' },
+  { id: 1, transactionType: 'revenue', name: 'Venda de imóvel' },
+  { id: 8, transactionType: 'expense', name: 'Obra' },
+  { id: 6, transactionType: 'expense', name: 'Parcela de financiamento' },
+  { id: 7, transactionType: 'expense', name: 'Reforma' },
+]
+
+let transactionSeq = 0
+
+/** A transaction as GET /api/transactions/{id} returns it: a one-off renovation by default. */
+export function makeTransaction(overrides: Partial<Transaction> = {}): Transaction {
+  transactionSeq += 1
+  return {
+    id: `00000000-0000-4000-c000-${String(transactionSeq).padStart(12, '0')}`,
+    propertyId: '00000000-0000-4000-8000-000000000001',
+    propertyName: 'Apartamento Centro',
+    categoryId: 7,
+    categoryName: 'Reforma',
+    type: 'expense',
+    amountCents: 1_200_000,
+    occurredOn: '2026-10-23',
+    description: 'Pintura geral',
+    isRecurring: false,
+    recurrenceEndsOn: null,
+    createdAt: '2026-10-23T12:00:00.000Z',
+    updatedAt: '2026-10-23T12:00:00.000Z',
     ...overrides,
   }
 }
@@ -286,6 +319,7 @@ interface FakeApiOptions {
   documents?: Record<string, PropertyDocument[]>
   contracts?: Contract[]
   reservations?: Reservation[]
+  transactions?: Transaction[]
   /** Tenants and guests on file, for GET /api/occupants. */
   occupants?: Occupant[]
   handlers?: Record<string, Handler>
@@ -307,6 +341,7 @@ export function fakeApi({
   documents = {},
   contracts = [],
   reservations = [],
+  transactions = [],
   occupants = [],
   handlers = {},
 }: FakeApiOptions = {}) {
@@ -318,6 +353,7 @@ export function fakeApi({
     documents,
     contracts,
     reservations,
+    transactions,
     occupants,
     clients: clients.map((client) => makeClient(client)),
     agencies: [...agencies],
@@ -512,6 +548,56 @@ export function fakeApi({
     return undefined
   }
 
+  /** Transactions, kept in `state.transactions`; the period filter looks at the first occurrence, as the API's does. */
+  function transactionRoutes(method: string, pathname: string, query: URLSearchParams, body: unknown): Response | undefined {
+    const categorized = (categoryId: number) => {
+      const category = TRANSACTION_CATEGORIES.find((c) => c.id === categoryId)!
+      return { categoryId, categoryName: category.name, type: category.transactionType }
+    }
+    if (method === 'GET' && pathname === '/api/transactions') {
+      const page = Number(query.get('page') ?? 1)
+      const pageSize = Number(query.get('pageSize') ?? 20)
+      const from = query.get('from')
+      const to = query.get('to')
+      const matches = state.transactions
+        .filter((t) => !query.get('propertyId') || t.propertyId === query.get('propertyId'))
+        .filter((t) => !query.get('categoryId') || t.categoryId === Number(query.get('categoryId')))
+        .filter((t) => !query.get('type') || t.type === query.get('type'))
+        .filter((t) => !query.get('isRecurring') || String(t.isRecurring) === query.get('isRecurring'))
+        .filter((t) => (!from || t.occurredOn >= from) && (!to || t.occurredOn <= to))
+        .sort((a, b) => b.occurredOn.localeCompare(a.occurredOn))
+      return json({ items: matches.slice((page - 1) * pageSize, page * pageSize), page, pageSize, total: matches.length })
+    }
+    if (method === 'POST' && pathname === '/api/transactions') {
+      const request = body as CreateTransactionRequest
+      const property = state.properties.find((p) => p.id === request.propertyId)
+      if (!property) return json(NOT_FOUND, 404)
+      const created = makeTransaction({
+        ...request,
+        ...categorized(request.categoryId),
+        propertyName: property.name,
+        description: request.description ?? null,
+        recurrenceEndsOn: request.recurrenceEndsOn ?? null,
+      })
+      state.transactions.push(created)
+      return json(created, 201)
+    }
+    const match = /^\/api\/transactions\/([^/]+)$/.exec(pathname)
+    if (!match) return undefined
+    const transaction = state.transactions.find((t) => t.id === match[1])
+    if (!transaction) return json(NOT_FOUND, 404)
+    if (method === 'GET') return json(transaction)
+    if (method === 'PATCH') {
+      const patch = body as Partial<Transaction>
+      return json(Object.assign(transaction, patch, patch.categoryId ? categorized(patch.categoryId) : {}))
+    }
+    if (method === 'DELETE') {
+      state.transactions = state.transactions.filter((t) => t !== transaction)
+      return new Response(null, { status: 204 })
+    }
+    return undefined
+  }
+
   /** Clients and agencies; one that still has properties cannot be deleted (409, with the count). */
   function clientRoutes(method: string, pathname: string, query: URLSearchParams, body: unknown): Response | undefined {
     const page = Number(query.get('page') ?? 1)
@@ -665,6 +751,7 @@ export function fakeApi({
     'GET /api/me': () => (state.session ? json(state.session) : json(UNAUTHENTICATED, 401)),
     'GET /api/kpis/portfolio': () => (state.session ? json(state.kpis) : json(UNAUTHENTICATED, 401)),
     'GET /api/lookups/property-catalog': () => json(CATALOG),
+    'GET /api/lookups/transaction-categories': () => json(TRANSACTION_CATEGORIES),
     'GET /api/auth/organization/get-full-organization': () => {
       if (!state.session) return json(null)
       const isDemo = state.session.user.isAnonymous
@@ -701,6 +788,7 @@ export function fakeApi({
         contractRoutes(request.method, pathname, searchParams, body) ??
         reservationRoutes(request.method, pathname, searchParams, body) ??
         clientRoutes(request.method, pathname, searchParams, body) ??
+        transactionRoutes(request.method, pathname, searchParams, body) ??
         dynamic(request.method, pathname, searchParams, body))
       : undefined
     if (answer) return answer
