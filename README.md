@@ -36,6 +36,7 @@ In development Vite proxies `/api` to `http://localhost:3000`, so the browser ta
 | `npm run build` | type-check and production build to `dist/` |
 | `npm run preview` | serve the production build |
 | `npm test` / `npm run test:watch` | Vitest suite |
+| `npm run coverage` | the suite with a v8 coverage report (`coverage/`) and a floor it must stay above |
 | `npm run typecheck` | TypeScript check |
 | `npm run lint` | oxlint |
 | `npm run api:types` | regenerate `src/lib/api/schema.d.ts` from `../my-bricks-back-end/docs/openapi.json` |
@@ -234,6 +235,8 @@ Every test renders the whole app in jsdom, and a screen such as a property's pag
 `src/test/fake-api.ts` stubs `fetch` with a small in-memory API: `/api/me`, the portfolio indicators, the active organization, the property list (searched, filtered and paged like the real one), each property, its indicators, its financing schedule, clients and agencies (listed, created, edited, deleted, with the 409 when they still have properties), contracts (listed, created with the replacement of an active one, edited, ended, cancelled, PDF), reservations (listed, created with the overlap check and its 409, edited, cancelled), transactions and their categories, and occupants answer from the fake state (`makeSession`, `makeKpis`, `makePropertyRecord`, `makeClient`, `makeContract`, `makeReservation`, `makeTransaction`, `makeFinancingSchedule`, a SAC schedule with round numbers), and each test adds the Better Auth endpoints it needs. Both clients look `fetch` up on every call so the stub takes effect, and jsdom runs on `http://mybricks.test` so a test can never reach the real API on `localhost:3000`.
 
 Uploads are the one place tests do not go through the real request code: jsdom's `FormData` and `File` cannot be carried by Node's `Request`, so `property-files.test.tsx` replaces only the two upload calls with JSON describing the file. Everything around them (checks, queueing, order, screens, the fake API) runs as in the app; the multipart request itself was checked against the real API in the browser.
+
+Coverage is measured with v8 (`npm run coverage`, report in `coverage/index.html`). It stands at about 97% of statements, 91% of branches and 98% of lines, and the config fails the run below 95 / 88 / 96 so a new screen cannot arrive untested. The shadcn components, the generated route tree and API types, `main.tsx` and the test helpers are left out of the count. What stays uncovered is mostly defensive branches that the fake API cannot reach (a missing element, an upload hook's failure path).
 
 ## Conventions
 
