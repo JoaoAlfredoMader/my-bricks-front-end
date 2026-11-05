@@ -113,6 +113,7 @@ The signed-in screens follow TypeUI's **Executive** design skill, from its publi
 
 - **the portfolio value** as the headline figure (compact, `R$ 6,57 mi`), with the part that produces income;
 - **annual revenue, NOI, gross yield and cap rate** as stat tiles;
+- **the cash flow** of the portfolio, month by month, under them (the chart of the *Finances* section, see *Cash flow* there). The dashboard already leads with its own figures, so the chart comes without the three totals the Finanças page puts above it; its total is the last row of the table view. Its period (last 12 months, this year, last year) is the component's own state. It is left out while the portfolio has no property;
 - **properties by status** as a thin segmented bar beside a list with each status's count and share (the bar has a hover readout; the list keeps every value reachable without it);
 - **one row per property**, highest value first: status, value, revenue, NOI, yield, cap rate and IRR. A rate the API could not compute shows a dash, with the reason for a missing IRR read to screen readers and shown on hover.
 
@@ -207,6 +208,8 @@ npm test
 ```
 
 Tests render the real route tree with a memory history (`src/test/render-route.tsx`). The router plugin is left out of the test config because the generated route tree is committed and the plugin's watcher keeps Vitest workers from starting.
+
+Every test renders the whole app in jsdom, and a screen such as a property's page fetches a dozen things. With one worker per core the slowest tests starve and time out (the failures were different ones on every run, and each passed alone), so the config caps the suite at four workers and gives a test 15 seconds instead of five.
 
 `src/test/fake-api.ts` stubs `fetch` with a small in-memory API: `/api/me`, the portfolio indicators, the active organization, the property list (searched, filtered and paged like the real one), each property, its indicators, its financing schedule, clients and agencies (listed, created, edited, deleted, with the 409 when they still have properties), contracts (listed, created with the replacement of an active one, edited, ended, cancelled, PDF), reservations (listed, created with the overlap check and its 409, edited, cancelled), transactions and their categories, and occupants answer from the fake state (`makeSession`, `makeKpis`, `makePropertyRecord`, `makeClient`, `makeContract`, `makeReservation`, `makeTransaction`, `makeFinancingSchedule`, a SAC schedule with round numbers), and each test adds the Better Auth endpoints it needs. Both clients look `fetch` up on every call so the stub takes effect, and jsdom runs on `http://mybricks.test` so a test can never reach the real API on `localhost:3000`.
 
