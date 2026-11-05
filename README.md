@@ -15,7 +15,7 @@ Front-end of **MyBricks**, a real-estate portfolio management platform: properti
 - **Vitest** + **Testing Library**
 - **oxlint**
 
-Planned with the app screens: TanStack Table, charts and maps.
+Not used: TanStack Table (the tables are plain, sorted and filtered by the API) and a map library. The charts are hand-drawn SVG (see *Finances*). There is no map yet because the API has nowhere to keep a property's coordinates: its address has `latitude` and `longitude`, always empty, and the create and update requests do not take them (the back-end README lists geocoding as not covered).
 
 ## Getting started
 
