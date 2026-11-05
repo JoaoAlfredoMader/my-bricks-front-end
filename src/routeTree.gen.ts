@@ -17,10 +17,14 @@ import { Route as AuthenticatedAppContratosIndexRouteImport } from './routes/_au
 import { Route as AuthenticatedAppContratosNovoRouteImport } from './routes/_authenticated/app/contratos/novo'
 import { Route as AuthenticatedAppImoveisIndexRouteImport } from './routes/_authenticated/app/imoveis/index'
 import { Route as AuthenticatedAppImoveisNovoRouteImport } from './routes/_authenticated/app/imoveis/novo'
+import { Route as AuthenticatedAppReservasIndexRouteImport } from './routes/_authenticated/app/reservas/index'
+import { Route as AuthenticatedAppReservasNovaRouteImport } from './routes/_authenticated/app/reservas/nova'
 import { Route as AuthenticatedAppContratosContractIdIndexRouteImport } from './routes/_authenticated/app/contratos/$contractId/index'
 import { Route as AuthenticatedAppContratosContractIdEditarRouteImport } from './routes/_authenticated/app/contratos/$contractId/editar'
 import { Route as AuthenticatedAppImoveisPropertyIdIndexRouteImport } from './routes/_authenticated/app/imoveis/$propertyId/index'
 import { Route as AuthenticatedAppImoveisPropertyIdEditarRouteImport } from './routes/_authenticated/app/imoveis/$propertyId/editar'
+import { Route as AuthenticatedAppReservasReservationIdIndexRouteImport } from './routes/_authenticated/app/reservas/$reservationId/index'
+import { Route as AuthenticatedAppReservasReservationIdEditarRouteImport } from './routes/_authenticated/app/reservas/$reservationId/editar'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -65,6 +69,18 @@ const AuthenticatedAppImoveisNovoRoute =
     path: '/app/imoveis/novo',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
+const AuthenticatedAppReservasIndexRoute =
+  AuthenticatedAppReservasIndexRouteImport.update({
+    id: '/app/reservas/',
+    path: '/app/reservas/',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedAppReservasNovaRoute =
+  AuthenticatedAppReservasNovaRouteImport.update({
+    id: '/app/reservas/nova',
+    path: '/app/reservas/nova',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 const AuthenticatedAppContratosContractIdIndexRoute =
   AuthenticatedAppContratosContractIdIndexRouteImport.update({
     id: '/app/contratos/$contractId/',
@@ -89,6 +105,18 @@ const AuthenticatedAppImoveisPropertyIdEditarRoute =
     path: '/app/imoveis/$propertyId/editar',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
+const AuthenticatedAppReservasReservationIdIndexRoute =
+  AuthenticatedAppReservasReservationIdIndexRouteImport.update({
+    id: '/app/reservas/$reservationId/',
+    path: '/app/reservas/$reservationId/',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedAppReservasReservationIdEditarRoute =
+  AuthenticatedAppReservasReservationIdEditarRouteImport.update({
+    id: '/app/reservas/$reservationId/editar',
+    path: '/app/reservas/$reservationId/editar',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -96,12 +124,16 @@ export interface FileRoutesByFullPath {
   '/app/': typeof AuthenticatedAppIndexRoute
   '/app/contratos/novo': typeof AuthenticatedAppContratosNovoRoute
   '/app/imoveis/novo': typeof AuthenticatedAppImoveisNovoRoute
+  '/app/reservas/nova': typeof AuthenticatedAppReservasNovaRoute
   '/app/contratos/': typeof AuthenticatedAppContratosIndexRoute
   '/app/imoveis/': typeof AuthenticatedAppImoveisIndexRoute
+  '/app/reservas/': typeof AuthenticatedAppReservasIndexRoute
   '/app/contratos/$contractId/editar': typeof AuthenticatedAppContratosContractIdEditarRoute
   '/app/imoveis/$propertyId/editar': typeof AuthenticatedAppImoveisPropertyIdEditarRoute
+  '/app/reservas/$reservationId/editar': typeof AuthenticatedAppReservasReservationIdEditarRoute
   '/app/contratos/$contractId/': typeof AuthenticatedAppContratosContractIdIndexRoute
   '/app/imoveis/$propertyId/': typeof AuthenticatedAppImoveisPropertyIdIndexRoute
+  '/app/reservas/$reservationId/': typeof AuthenticatedAppReservasReservationIdIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -109,12 +141,16 @@ export interface FileRoutesByTo {
   '/app': typeof AuthenticatedAppIndexRoute
   '/app/contratos/novo': typeof AuthenticatedAppContratosNovoRoute
   '/app/imoveis/novo': typeof AuthenticatedAppImoveisNovoRoute
+  '/app/reservas/nova': typeof AuthenticatedAppReservasNovaRoute
   '/app/contratos': typeof AuthenticatedAppContratosIndexRoute
   '/app/imoveis': typeof AuthenticatedAppImoveisIndexRoute
+  '/app/reservas': typeof AuthenticatedAppReservasIndexRoute
   '/app/contratos/$contractId/editar': typeof AuthenticatedAppContratosContractIdEditarRoute
   '/app/imoveis/$propertyId/editar': typeof AuthenticatedAppImoveisPropertyIdEditarRoute
+  '/app/reservas/$reservationId/editar': typeof AuthenticatedAppReservasReservationIdEditarRoute
   '/app/contratos/$contractId': typeof AuthenticatedAppContratosContractIdIndexRoute
   '/app/imoveis/$propertyId': typeof AuthenticatedAppImoveisPropertyIdIndexRoute
+  '/app/reservas/$reservationId': typeof AuthenticatedAppReservasReservationIdIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -124,12 +160,16 @@ export interface FileRoutesById {
   '/_authenticated/app/': typeof AuthenticatedAppIndexRoute
   '/_authenticated/app/contratos/novo': typeof AuthenticatedAppContratosNovoRoute
   '/_authenticated/app/imoveis/novo': typeof AuthenticatedAppImoveisNovoRoute
+  '/_authenticated/app/reservas/nova': typeof AuthenticatedAppReservasNovaRoute
   '/_authenticated/app/contratos/': typeof AuthenticatedAppContratosIndexRoute
   '/_authenticated/app/imoveis/': typeof AuthenticatedAppImoveisIndexRoute
+  '/_authenticated/app/reservas/': typeof AuthenticatedAppReservasIndexRoute
   '/_authenticated/app/contratos/$contractId/editar': typeof AuthenticatedAppContratosContractIdEditarRoute
   '/_authenticated/app/imoveis/$propertyId/editar': typeof AuthenticatedAppImoveisPropertyIdEditarRoute
+  '/_authenticated/app/reservas/$reservationId/editar': typeof AuthenticatedAppReservasReservationIdEditarRoute
   '/_authenticated/app/contratos/$contractId/': typeof AuthenticatedAppContratosContractIdIndexRoute
   '/_authenticated/app/imoveis/$propertyId/': typeof AuthenticatedAppImoveisPropertyIdIndexRoute
+  '/_authenticated/app/reservas/$reservationId/': typeof AuthenticatedAppReservasReservationIdIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -139,12 +179,16 @@ export interface FileRouteTypes {
     | '/app/'
     | '/app/contratos/novo'
     | '/app/imoveis/novo'
+    | '/app/reservas/nova'
     | '/app/contratos/'
     | '/app/imoveis/'
+    | '/app/reservas/'
     | '/app/contratos/$contractId/editar'
     | '/app/imoveis/$propertyId/editar'
+    | '/app/reservas/$reservationId/editar'
     | '/app/contratos/$contractId/'
     | '/app/imoveis/$propertyId/'
+    | '/app/reservas/$reservationId/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -152,12 +196,16 @@ export interface FileRouteTypes {
     | '/app'
     | '/app/contratos/novo'
     | '/app/imoveis/novo'
+    | '/app/reservas/nova'
     | '/app/contratos'
     | '/app/imoveis'
+    | '/app/reservas'
     | '/app/contratos/$contractId/editar'
     | '/app/imoveis/$propertyId/editar'
+    | '/app/reservas/$reservationId/editar'
     | '/app/contratos/$contractId'
     | '/app/imoveis/$propertyId'
+    | '/app/reservas/$reservationId'
   id:
     | '__root__'
     | '/'
@@ -166,12 +214,16 @@ export interface FileRouteTypes {
     | '/_authenticated/app/'
     | '/_authenticated/app/contratos/novo'
     | '/_authenticated/app/imoveis/novo'
+    | '/_authenticated/app/reservas/nova'
     | '/_authenticated/app/contratos/'
     | '/_authenticated/app/imoveis/'
+    | '/_authenticated/app/reservas/'
     | '/_authenticated/app/contratos/$contractId/editar'
     | '/_authenticated/app/imoveis/$propertyId/editar'
+    | '/_authenticated/app/reservas/$reservationId/editar'
     | '/_authenticated/app/contratos/$contractId/'
     | '/_authenticated/app/imoveis/$propertyId/'
+    | '/_authenticated/app/reservas/$reservationId/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -238,6 +290,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAppImoveisNovoRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/app/reservas/': {
+      id: '/_authenticated/app/reservas/'
+      path: '/app/reservas'
+      fullPath: '/app/reservas/'
+      preLoaderRoute: typeof AuthenticatedAppReservasIndexRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/app/reservas/nova': {
+      id: '/_authenticated/app/reservas/nova'
+      path: '/app/reservas/nova'
+      fullPath: '/app/reservas/nova'
+      preLoaderRoute: typeof AuthenticatedAppReservasNovaRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/app/contratos/$contractId/': {
       id: '/_authenticated/app/contratos/$contractId/'
       path: '/app/contratos/$contractId'
@@ -266,6 +332,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAppImoveisPropertyIdEditarRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/app/reservas/$reservationId/': {
+      id: '/_authenticated/app/reservas/$reservationId/'
+      path: '/app/reservas/$reservationId'
+      fullPath: '/app/reservas/$reservationId/'
+      preLoaderRoute: typeof AuthenticatedAppReservasReservationIdIndexRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/app/reservas/$reservationId/editar': {
+      id: '/_authenticated/app/reservas/$reservationId/editar'
+      path: '/app/reservas/$reservationId/editar'
+      fullPath: '/app/reservas/$reservationId/editar'
+      preLoaderRoute: typeof AuthenticatedAppReservasReservationIdEditarRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
   }
 }
 
@@ -273,28 +353,38 @@ interface AuthenticatedRouteChildren {
   AuthenticatedAppIndexRoute: typeof AuthenticatedAppIndexRoute
   AuthenticatedAppContratosNovoRoute: typeof AuthenticatedAppContratosNovoRoute
   AuthenticatedAppImoveisNovoRoute: typeof AuthenticatedAppImoveisNovoRoute
+  AuthenticatedAppReservasNovaRoute: typeof AuthenticatedAppReservasNovaRoute
   AuthenticatedAppContratosIndexRoute: typeof AuthenticatedAppContratosIndexRoute
   AuthenticatedAppImoveisIndexRoute: typeof AuthenticatedAppImoveisIndexRoute
+  AuthenticatedAppReservasIndexRoute: typeof AuthenticatedAppReservasIndexRoute
   AuthenticatedAppContratosContractIdEditarRoute: typeof AuthenticatedAppContratosContractIdEditarRoute
   AuthenticatedAppImoveisPropertyIdEditarRoute: typeof AuthenticatedAppImoveisPropertyIdEditarRoute
+  AuthenticatedAppReservasReservationIdEditarRoute: typeof AuthenticatedAppReservasReservationIdEditarRoute
   AuthenticatedAppContratosContractIdIndexRoute: typeof AuthenticatedAppContratosContractIdIndexRoute
   AuthenticatedAppImoveisPropertyIdIndexRoute: typeof AuthenticatedAppImoveisPropertyIdIndexRoute
+  AuthenticatedAppReservasReservationIdIndexRoute: typeof AuthenticatedAppReservasReservationIdIndexRoute
 }
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedAppIndexRoute: AuthenticatedAppIndexRoute,
   AuthenticatedAppContratosNovoRoute: AuthenticatedAppContratosNovoRoute,
   AuthenticatedAppImoveisNovoRoute: AuthenticatedAppImoveisNovoRoute,
+  AuthenticatedAppReservasNovaRoute: AuthenticatedAppReservasNovaRoute,
   AuthenticatedAppContratosIndexRoute: AuthenticatedAppContratosIndexRoute,
   AuthenticatedAppImoveisIndexRoute: AuthenticatedAppImoveisIndexRoute,
+  AuthenticatedAppReservasIndexRoute: AuthenticatedAppReservasIndexRoute,
   AuthenticatedAppContratosContractIdEditarRoute:
     AuthenticatedAppContratosContractIdEditarRoute,
   AuthenticatedAppImoveisPropertyIdEditarRoute:
     AuthenticatedAppImoveisPropertyIdEditarRoute,
+  AuthenticatedAppReservasReservationIdEditarRoute:
+    AuthenticatedAppReservasReservationIdEditarRoute,
   AuthenticatedAppContratosContractIdIndexRoute:
     AuthenticatedAppContratosContractIdIndexRoute,
   AuthenticatedAppImoveisPropertyIdIndexRoute:
     AuthenticatedAppImoveisPropertyIdIndexRoute,
+  AuthenticatedAppReservasReservationIdIndexRoute:
+    AuthenticatedAppReservasReservationIdIndexRoute,
 }
 
 const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(

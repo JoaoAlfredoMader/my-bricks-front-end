@@ -2,6 +2,7 @@ import { vi } from 'vitest'
 import type { Session } from '@/features/auth/api/session'
 import type { Contract, CreateContractRequest } from '@/features/contracts/api/queries'
 import type { Occupant } from '@/features/occupants/api/queries'
+import type { CreateReservationRequest, Reservation } from '@/features/reservations/api/queries'
 import type { PortfolioKpis, PropertyKpis } from '@/features/dashboard/api/portfolio-kpis'
 import type { Photo, PropertyDocument } from '@/features/properties/api/files'
 import type { FinancingSchedule, Property, PropertyCatalog } from '@/features/properties/api/queries'
@@ -136,6 +137,34 @@ export function makePropertyRecord(overrides: Partial<Property> = {}): Property 
   }
 }
 
+let reservationSeq = 0
+
+/** A reservation as GET /api/reservations/{id} returns it: a confirmed 5-night stay by default. */
+export function makeReservation(overrides: Partial<Reservation> = {}): Reservation {
+  reservationSeq += 1
+  return {
+    id: `00000000-0000-4000-a000-${String(reservationSeq).padStart(12, '0')}`,
+    propertyId: '00000000-0000-4000-8000-000000000001',
+    propertyName: 'Flat Beira-Mar',
+    contractId: null,
+    guest: { id: `guest-${reservationSeq}`, name: 'Carla Mendes', document: null, email: 'carla@example.com', phone: '11987654321' },
+    checkIn: '2026-11-22',
+    checkOut: '2026-11-27',
+    nights: 5,
+    totalAmountCents: 330_000,
+    status: 'confirmed',
+    notes: null,
+    createdAt: '2026-11-01T12:00:00.000Z',
+    updatedAt: '2026-11-01T12:00:00.000Z',
+    ...overrides,
+  }
+}
+
+/** Whole days between two YYYY-MM-DD dates. */
+function nightsBetween(checkIn: string, checkOut: string) {
+  return Math.round((Date.parse(checkOut) - Date.parse(checkIn)) / 86_400_000)
+}
+
 let contractSeq = 0
 
 /** A contract as GET /api/contracts/{id} returns it: a conventional, active one by default. */
@@ -235,6 +264,7 @@ interface FakeApiOptions {
   photos?: Record<string, Photo[]>
   documents?: Record<string, PropertyDocument[]>
   contracts?: Contract[]
+  reservations?: Reservation[]
   /** Tenants and guests on file, for GET /api/occupants. */
   occupants?: Occupant[]
   handlers?: Record<string, Handler>
@@ -255,10 +285,11 @@ export function fakeApi({
   photos = {},
   documents = {},
   contracts = [],
+  reservations = [],
   occupants = [],
   handlers = {},
 }: FakeApiOptions = {}) {
-  const state = { session, kpis, properties, photos, documents, contracts, occupants }
+  const state = { session, kpis, properties, photos, documents, contracts, reservations, occupants }
   const calls: { method: string; path: string; query: URLSearchParams; body: unknown }[] = []
   let fileSeq = 0
 
@@ -372,6 +403,79 @@ export function fakeApi({
     if (method === 'POST' && action === 'pdf') {
       contract.pdfUrl = `/api/contracts/${contract.id}/pdf`
       return json({ contractId: contract.id, fileName: 'contrato.pdf', sizeBytes: 4932, generatedAt: '2026-11-05T12:00:00.000Z', url: contract.pdfUrl })
+    }
+    return undefined
+  }
+
+  /** Reservations, kept in `state.reservations`; two confirmed ones of a property cannot share a night. */
+  function reservationRoutes(method: string, pathname: string, query: URLSearchParams, body: unknown): Response | undefined {
+    if (method === 'GET' && pathname === '/api/reservations') {
+      const page = Number(query.get('page') ?? 1)
+      const pageSize = Number(query.get('pageSize') ?? 20)
+      const matches = state.reservations
+        .filter((r) => !query.get('propertyId') || r.propertyId === query.get('propertyId'))
+        .filter((r) => !query.get('status') || r.status === query.get('status'))
+        .sort((a, b) => b.checkIn.localeCompare(a.checkIn))
+      return json({ items: matches.slice((page - 1) * pageSize, page * pageSize), page, pageSize, total: matches.length })
+    }
+    const clash = (propertyId: string, checkIn: string, checkOut: string, exceptId?: string) =>
+      state.reservations.find(
+        (r) => r.id !== exceptId && r.propertyId === propertyId && r.status === 'confirmed' && r.checkIn < checkOut && checkIn < r.checkOut,
+      )
+    const conflict = (other: Reservation) =>
+      json(
+        {
+          error: {
+            code: 'CONFLICT',
+            message: 'The property already has a confirmed reservation in these dates',
+            details: { reservationId: other.id, checkIn: other.checkIn, checkOut: other.checkOut },
+          },
+        },
+        409,
+      )
+    if (method === 'POST' && pathname === '/api/reservations') {
+      const request = body as CreateReservationRequest
+      const property = state.properties.find((p) => p.id === request.propertyId)
+      if (!property) return json(NOT_FOUND, 404)
+      const other = clash(property.id, request.checkIn, request.checkOut)
+      if (other) return conflict(other)
+      const guest: Occupant =
+        state.occupants.find((o) => o.id === request.occupantId) ??
+        { id: `guest-new-${state.occupants.length + 1}`, name: request.occupant!.name, document: request.occupant!.document ?? null, email: request.occupant!.email ?? null, phone: request.occupant!.phone ?? null }
+      const created = makeReservation({
+        propertyId: property.id,
+        propertyName: property.name,
+        contractId: request.contractId ?? null,
+        guest,
+        checkIn: request.checkIn,
+        checkOut: request.checkOut,
+        nights: nightsBetween(request.checkIn, request.checkOut),
+        totalAmountCents: request.totalAmountCents,
+        notes: request.notes ?? null,
+      })
+      state.reservations.push(created)
+      return json(created, 201)
+    }
+    const match = /^\/api\/reservations\/([^/]+)(?:\/(cancel))?$/.exec(pathname)
+    if (!match) return undefined
+    const reservation = state.reservations.find((r) => r.id === match[1])
+    if (!reservation) return json(NOT_FOUND, 404)
+    if (method === 'GET' && !match[2]) return json(reservation)
+    const notConfirmed = json({ error: { code: 'BUSINESS_RULE', message: 'Only confirmed reservations can be changed' } }, 422)
+    if (method === 'PATCH' && !match[2]) {
+      if (reservation.status !== 'confirmed') return notConfirmed
+      const patch = body as Partial<Reservation> & { totalAmountCents?: number }
+      const checkIn = patch.checkIn ?? reservation.checkIn
+      const checkOut = patch.checkOut ?? reservation.checkOut
+      const other = clash(reservation.propertyId, checkIn, checkOut, reservation.id)
+      if (other) return conflict(other)
+      Object.assign(reservation, patch, { nights: nightsBetween(checkIn, checkOut) })
+      return json(reservation)
+    }
+    if (method === 'POST' && match[2] === 'cancel') {
+      if (reservation.status !== 'confirmed') return notConfirmed
+      reservation.status = 'cancelled'
+      return json(reservation)
     }
     return undefined
   }
@@ -508,6 +612,7 @@ export function fakeApi({
     const answer = state.session
       ? (files(request.method, pathname, body) ??
         contractRoutes(request.method, pathname, searchParams, body) ??
+        reservationRoutes(request.method, pathname, searchParams, body) ??
         dynamic(request.method, pathname, searchParams, body))
       : undefined
     if (answer) return answer
