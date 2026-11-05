@@ -36,6 +36,7 @@ describe('Property detail', () => {
       Participação: '50%',
       Imobiliária: 'Imobiliária Central',
     })
+    expect(screen.getByRole('link', { name: 'Marina Prado' })).toHaveAttribute('href', '/app/clientes/client-1')
     expect(card('Aquisição')).toEqual({ Forma: 'Compra', Data: '14 de maio de 2021', Custo: 'R$ 520.000' })
   })
 

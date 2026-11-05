@@ -189,7 +189,18 @@ export function PropertyDetailPage({ property, kpis, catalog, clientName, canDel
           <DetailCard
             title="Proprietário e gestão"
             items={[
-              { label: 'Cliente', value: property.clientId ? (clientName ?? '…') : null },
+              {
+                label: 'Cliente',
+                value: property.clientId ? (
+                  <Link
+                    to="/app/clientes/$clientId"
+                    params={{ clientId: property.clientId }}
+                    className="underline-offset-4 hover:underline"
+                  >
+                    {clientName ?? '…'}
+                  </Link>
+                ) : null,
+              },
               { label: 'Participação', value: `${property.ownershipPercentage}%` },
               { label: 'Imobiliária', value: property.agencyName },
             ]}
