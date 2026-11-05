@@ -1,5 +1,6 @@
 import { vi } from 'vitest'
 import type { Session } from '@/features/auth/api/session'
+import type { Agency, Client } from '@/features/clients/api/queries'
 import type { Contract, CreateContractRequest } from '@/features/contracts/api/queries'
 import type { Occupant } from '@/features/occupants/api/queries'
 import type { CreateReservationRequest, Reservation } from '@/features/reservations/api/queries'
@@ -137,6 +138,25 @@ export function makePropertyRecord(overrides: Partial<Property> = {}): Property 
   }
 }
 
+let clientSeq = 0
+
+/** A client as GET /api/clients/{id} returns it: an individual with a valid CPF by default. */
+export function makeClient(overrides: Partial<Client> = {}): Client {
+  clientSeq += 1
+  return {
+    id: `00000000-0000-4000-b000-${String(clientSeq).padStart(12, '0')}`,
+    name: 'Marina Prado',
+    personType: 'individual',
+    document: '52998224725',
+    email: 'marina@example.com',
+    whatsapp: '11987654321',
+    createdById: 'user-1',
+    createdAt: '2026-11-01T12:00:00.000Z',
+    updatedAt: '2026-11-01T12:00:00.000Z',
+    ...overrides,
+  }
+}
+
 let reservationSeq = 0
 
 /** A reservation as GET /api/reservations/{id} returns it: a confirmed 5-night stay by default. */
@@ -258,8 +278,9 @@ interface FakeApiOptions {
   session?: Session | null
   kpis?: PortfolioKpis
   properties?: Property[]
-  clients?: { id: string; name: string }[]
-  agencies?: { id: string; name: string }[]
+  /** Only the id and the name are needed; the rest is filled in like a typical client. */
+  clients?: (Partial<Client> & { id: string; name: string })[]
+  agencies?: Agency[]
   /** By property id. */
   photos?: Record<string, Photo[]>
   documents?: Record<string, PropertyDocument[]>
@@ -289,7 +310,18 @@ export function fakeApi({
   occupants = [],
   handlers = {},
 }: FakeApiOptions = {}) {
-  const state = { session, kpis, properties, photos, documents, contracts, reservations, occupants }
+  const state = {
+    session,
+    kpis,
+    properties,
+    photos,
+    documents,
+    contracts,
+    reservations,
+    occupants,
+    clients: clients.map((client) => makeClient(client)),
+    agencies: [...agencies],
+  }
   const calls: { method: string; path: string; query: URLSearchParams; body: unknown }[] = []
   let fileSeq = 0
 
@@ -480,6 +512,67 @@ export function fakeApi({
     return undefined
   }
 
+  /** Clients and agencies; one that still has properties cannot be deleted (409, with the count). */
+  function clientRoutes(method: string, pathname: string, query: URLSearchParams, body: unknown): Response | undefined {
+    const page = Number(query.get('page') ?? 1)
+    const pageSize = Number(query.get('pageSize') ?? 20)
+    const paged = <T>(items: T[]) =>
+      json({ items: items.slice((page - 1) * pageSize, page * pageSize), page, pageSize, total: items.length })
+    const search = query.get('search')?.toLowerCase()
+    const named = (item: { name: string }) => !search || item.name.toLowerCase().includes(search)
+    const inUse = (message: string, properties: number) =>
+      json({ error: { code: 'CONFLICT', message, details: { properties } } }, 409)
+
+    if (method === 'GET' && pathname === '/api/clients') {
+      const matches = state.clients
+        .filter(named)
+        .filter((c) => !query.get('personType') || c.personType === query.get('personType'))
+        .sort((a, b) => a.name.localeCompare(b.name))
+      return paged(matches)
+    }
+    if (method === 'POST' && pathname === '/api/clients') {
+      const created = makeClient({ document: null, email: null, whatsapp: null, ...(body as Partial<Client>) })
+      state.clients.push(created)
+      return json(created, 201)
+    }
+    const client = /^\/api\/clients\/([^/]+)$/.exec(pathname)
+    if (client) {
+      const found = state.clients.find((c) => c.id === client[1])
+      if (!found) return json(NOT_FOUND, 404)
+      if (method === 'GET') return json(found)
+      if (method === 'PATCH') return json(Object.assign(found, body))
+      if (method === 'DELETE') {
+        const owned = state.properties.filter((p) => p.clientId === found.id).length
+        if (owned > 0) return inUse('Client still has properties. Move or remove them first.', owned)
+        state.clients = state.clients.filter((c) => c !== found)
+        return new Response(null, { status: 204 })
+      }
+    }
+
+    if (method === 'GET' && pathname === '/api/agencies') {
+      return paged(state.agencies.filter(named).sort((a, b) => a.name.localeCompare(b.name)))
+    }
+    if (method === 'POST' && pathname === '/api/agencies') {
+      const created = { id: `agency-${state.agencies.length + 1}`, name: (body as { name: string }).name }
+      state.agencies.push(created)
+      return json(created, 201)
+    }
+    const agency = /^\/api\/agencies\/([^/]+)$/.exec(pathname)
+    if (agency) {
+      const found = state.agencies.find((a) => a.id === agency[1])
+      if (!found) return json(NOT_FOUND, 404)
+      if (method === 'GET') return json(found)
+      if (method === 'PATCH') return json(Object.assign(found, body))
+      if (method === 'DELETE') {
+        const managed = state.properties.filter((p) => p.agencyId === found.id).length
+        if (managed > 0) return inUse('Agency still manages properties. Move or remove them first.', managed)
+        state.agencies = state.agencies.filter((a) => a !== found)
+        return new Response(null, { status: 204 })
+      }
+    }
+    return undefined
+  }
+
   function listProperties(query: URLSearchParams) {
     const page = Number(query.get('page') ?? 1)
     const pageSize = Number(query.get('pageSize') ?? 20)
@@ -488,6 +581,7 @@ export function fakeApi({
       .filter((p) => !search || p.name.toLowerCase().includes(search))
       .filter((p) => !query.get('propertyType') || p.propertyType === query.get('propertyType'))
       .filter((p) => !query.get('usageType') || p.usageType === query.get('usageType'))
+      .filter((p) => !query.get('clientId') || p.clientId === query.get('clientId'))
       .sort((a, b) => a.name.localeCompare(b.name))
     return { items: matches.slice((page - 1) * pageSize, page * pageSize), page, pageSize, total: matches.length }
   }
@@ -535,8 +629,6 @@ export function fakeApi({
     }
     if (method !== 'GET') return undefined
     if (pathname === '/api/properties') return json(listProperties(query))
-    if (pathname === '/api/clients') return json({ items: clients, page: 1, pageSize: 100, total: clients.length })
-    if (pathname === '/api/agencies') return json({ items: agencies, page: 1, pageSize: 100, total: agencies.length })
     if (pathname === '/api/lookups/cities') {
       const search = (query.get('search') ?? '').toLowerCase()
       return json(CITIES.filter((city) => city.name.toLowerCase().startsWith(search)))
@@ -565,11 +657,6 @@ export function fakeApi({
       return found
         ? json(makeProperty({ propertyId: found.id, name: found.name, status: found.status, usageType: found.usageType }))
         : json(NOT_FOUND, 404)
-    }
-    const client = /^\/api\/clients\/([^/]+)$/.exec(pathname)
-    if (client) {
-      const found = clients.find((c) => c.id === client[1])
-      return found ? json(found) : json(NOT_FOUND, 404)
     }
     return undefined
   }
@@ -613,6 +700,7 @@ export function fakeApi({
       ? (files(request.method, pathname, body) ??
         contractRoutes(request.method, pathname, searchParams, body) ??
         reservationRoutes(request.method, pathname, searchParams, body) ??
+        clientRoutes(request.method, pathname, searchParams, body) ??
         dynamic(request.method, pathname, searchParams, body))
       : undefined
     if (answer) return answer

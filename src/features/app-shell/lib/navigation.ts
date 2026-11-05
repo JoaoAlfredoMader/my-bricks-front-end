@@ -12,7 +12,7 @@ export interface NavItem {
   label: string
   icon: LucideIcon
   /** Absent while the screen is not built yet. */
-  to?: '/app' | '/app/imoveis' | '/app/contratos' | '/app/reservas'
+  to?: '/app' | '/app/imoveis' | '/app/contratos' | '/app/reservas' | '/app/clientes'
   /** Highlight only on this exact path (the home), not on the pages below it. */
   exact?: boolean
 }
@@ -23,5 +23,5 @@ export const NAV_ITEMS: NavItem[] = [
   { label: 'Contratos', icon: FileSignature, to: '/app/contratos' },
   { label: 'Reservas', icon: CalendarDays, to: '/app/reservas' },
   { label: 'Finanças', icon: Wallet },
-  { label: 'Clientes', icon: Users },
+  { label: 'Clientes', icon: Users, to: '/app/clientes' },
 ]
