@@ -2,6 +2,7 @@ import { vi } from 'vitest'
 import type { Session } from '@/features/auth/api/session'
 import type { Agency, Client } from '@/features/clients/api/queries'
 import type { Contract, CreateContractRequest } from '@/features/contracts/api/queries'
+import type { ContractTemplate } from '@/features/contracts/api/template'
 import type { CashFlow, CreateTransactionRequest, Transaction, TransactionCategory } from '@/features/finances/api/queries'
 import type { Occupant } from '@/features/occupants/api/queries'
 import type { CreateReservationRequest, Reservation } from '@/features/reservations/api/queries'
@@ -182,6 +183,50 @@ export function makeCashFlow(from: string, to: string, figures: Record<string, M
   return { from, to, months, totals: { revenueCents, expensesCents, netCents: revenueCents - expensesCents } }
 }
 
+/** The tokens a contract template can use, as the API lists them. */
+export const TEMPLATE_PLACEHOLDERS: ContractTemplate['placeholders'] = [
+  { token: 'locador', description: 'Nome do locador' },
+  { token: 'locatario', description: 'Nome do locatário' },
+  { token: 'imovel', description: 'Nome do imóvel' },
+  { token: 'valor_mensal', description: 'Valor mensal do aluguel, em reais' },
+  { token: 'data_emissao', description: 'Data em que o PDF foi gerado, por extenso' },
+]
+
+/** A short default contract, as the API serves it until the organization saves its own. */
+export const DEFAULT_TEMPLATE = {
+  header: '<h1>CONTRATO DE LOCAÇÃO</h1>',
+  clauses:
+    '<p>Pelo presente instrumento, <strong>{{locador}}</strong> loca a <strong>{{locatario}}</strong> o imóvel {{imovel}}.</p><h2>Cláusula 1ª – Do aluguel</h2><p>O aluguel é de {{valor_mensal}}.</p>',
+  footer: '<p><em>{{imovel}} – emitido em {{data_emissao}}</em></p>',
+}
+
+interface StoredTemplate {
+  header: string
+  clauses: string
+  footer: string
+  updatedAt: string
+}
+
+/** What the API tells the editor: the three parts, where they come from and the tokens that do not exist. */
+function templateAnswer(stored: StoredTemplate | null): ContractTemplate {
+  const parts = stored ?? DEFAULT_TEMPLATE
+  const known = new Set(TEMPLATE_PLACEHOLDERS.map((p) => p.token))
+  const unknown = new Set<string>()
+  for (const text of [parts.header, parts.clauses, parts.footer]) {
+    for (const match of text.matchAll(/\{\{\s*([a-z_]+)\s*\}\}/g)) if (!known.has(match[1]!)) unknown.add(match[1]!)
+  }
+  return {
+    header: parts.header,
+    clauses: parts.clauses,
+    footer: parts.footer,
+    isDefault: stored === null,
+    updatedAt: stored?.updatedAt ?? null,
+    updatedById: stored ? 'user-1' : null,
+    placeholders: TEMPLATE_PLACEHOLDERS,
+    unknownPlaceholders: [...unknown],
+  }
+}
+
 let transactionSeq = 0
 
 /** A transaction as GET /api/transactions/{id} returns it: a one-off renovation by default. */
@@ -353,6 +398,8 @@ interface FakeApiOptions {
   documents?: Record<string, PropertyDocument[]>
   contracts?: Contract[]
   reservations?: Reservation[]
+  /** The organization's own contract template; without it the API answers with the default. */
+  template?: { header: string; clauses: string; footer: string }
   transactions?: Transaction[]
   /** Tenants and guests on file, for GET /api/occupants. */
   occupants?: Occupant[]
@@ -375,6 +422,7 @@ export function fakeApi({
   documents = {},
   contracts = [],
   reservations = [],
+  template,
   transactions = [],
   occupants = [],
   handlers = {},
@@ -387,6 +435,7 @@ export function fakeApi({
     documents,
     contracts,
     reservations,
+    template: template ? { ...template, updatedAt: '2026-10-01T12:00:00.000Z' } : (null as StoredTemplate | null),
     transactions,
     occupants,
     clients: clients.map((client) => makeClient(client)),
@@ -794,6 +843,22 @@ export function fakeApi({
     'GET /api/kpis/portfolio': () => (state.session ? json(state.kpis) : json(UNAUTHENTICATED, 401)),
     'GET /api/lookups/property-catalog': () => json(CATALOG),
     'GET /api/lookups/transaction-categories': () => json(TRANSACTION_CATEGORIES),
+    'GET /api/contract-template': () => json(templateAnswer(state.template)),
+    // Only owners and admins write the template, like the API.
+    'PUT /api/contract-template': async (request) => {
+      if (state.session?.memberRole === 'member') return json({ error: { code: 'FORBIDDEN', message: 'Only owners and admins can edit the contract template' } }, 403)
+      const { header, clauses, footer } = (await request.clone().json()) as StoredTemplate
+      if (clauses.replace(/<[^>]*>/g, '').trim() === '') {
+        return json({ error: { code: 'VALIDATION_ERROR', message: 'Invalid request', details: [{ path: 'clauses', message: 'The clauses have no text' }] } }, 400)
+      }
+      state.template = { header, clauses, footer, updatedAt: '2026-11-05T16:00:00.000Z' }
+      return json(templateAnswer(state.template))
+    },
+    'DELETE /api/contract-template': () => {
+      if (state.session?.memberRole === 'member') return json({ error: { code: 'FORBIDDEN', message: 'Only owners and admins can edit the contract template' } }, 403)
+      state.template = null
+      return json(templateAnswer(null))
+    },
     // Every month empty; a test that cares about the figures gives its own handler.
     'GET /api/kpis/cash-flow': (request) => {
       const query = new URL(request.url).searchParams

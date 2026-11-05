@@ -54,8 +54,11 @@ function ContractPdf({ contract }: { contract: Contract }) {
       </h2>
       <p className="mt-1 text-sm text-muted-foreground">
         {contract.pdfUrl
-          ? 'O PDF usa o modelo de contrato da organização. Gere de novo depois de mudar o contrato.'
-          : 'Gera o contrato em PDF a partir do modelo da organização, com os dados deste contrato.'}
+          ? 'O PDF usa o modelo de contrato da organização. Gere de novo depois de mudar o contrato ou o modelo.'
+          : 'Gera o contrato em PDF a partir do modelo da organização, com os dados deste contrato.'}{' '}
+        <Link to="/app/contratos/modelo" className="font-medium text-foreground underline underline-offset-4">
+          Editar o modelo
+        </Link>
       </p>
       <div className="mt-4 flex flex-wrap gap-2">
         {contract.pdfUrl && (

@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { Link } from '@tanstack/react-router'
 import { cn } from 'cn'
-import { Plus, X } from 'lucide-react'
+import { FileText, Plus, X } from 'lucide-react'
 import { FilterSelect } from '@/components/filter-select'
 import { Pagination } from '@/components/pagination'
 import { Button, buttonVariants } from '@/components/ui/button'
@@ -35,14 +35,20 @@ export function ContractsPage({ filters, onFiltersChange }: ContractsPageProps) 
               : ' '}
           </p>
         </div>
-        <Link
-          to="/app/contratos/novo"
-          search={filters.propertyId ? { propertyId: filters.propertyId } : {}}
-          className={buttonVariants({ size: 'lg', className: 'h-10 px-5' })}
-        >
-          <Plus aria-hidden="true" />
-          Novo contrato
-        </Link>
+        <div className="flex flex-wrap gap-2">
+          <Link to="/app/contratos/modelo" className={buttonVariants({ variant: 'outline', size: 'lg', className: 'h-10 px-5' })}>
+            <FileText aria-hidden="true" />
+            Modelo do contrato
+          </Link>
+          <Link
+            to="/app/contratos/novo"
+            search={filters.propertyId ? { propertyId: filters.propertyId } : {}}
+            className={buttonVariants({ size: 'lg', className: 'h-10 px-5' })}
+          >
+            <Plus aria-hidden="true" />
+            Novo contrato
+          </Link>
+        </div>
       </header>
 
       <div role="search" className="mt-6 flex flex-wrap items-center gap-3">
