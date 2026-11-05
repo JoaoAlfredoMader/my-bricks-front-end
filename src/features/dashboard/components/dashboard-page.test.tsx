@@ -1,4 +1,5 @@
-import { screen, within } from '@testing-library/react'
+import { screen, waitFor, within } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { describe, expect, it } from 'vitest'
 import { fakeApi, makeKpis, makeSession } from '@/test/fake-api'
 import { renderRoute } from '@/test/render-route'
@@ -55,6 +56,39 @@ describe('Dashboard', () => {
 
     expect(await screen.findByText(/Nenhum imóvel cadastrado ainda/)).toBeInTheDocument()
     expect(screen.queryByRole('table')).not.toBeInTheDocument()
+  })
+
+  it('draws the portfolio cash flow under the summary, without repeating the dashboard\'s own figures', async () => {
+    const user = userEvent.setup()
+    const api = fakeApi({ session: makeSession() })
+    const { router } = renderRoute('/app')
+
+    const section = (await screen.findByRole('heading', { level: 2, name: 'Fluxo de caixa' })).closest('section')!
+    expect(within(section).getByText('Receitas e despesas da carteira, mês a mês.')).toBeInTheDocument()
+    expect(within(section).getByRole('radio', { name: 'Últimos 12 meses' })).toBeChecked()
+    // The three figures of the Finanças page would compete with the dashboard's own.
+    expect(within(section).queryByText('Receitas menos despesas')).not.toBeInTheDocument()
+    await waitFor(() => expect(api.callsTo('/api/kpis/cash-flow').length).toBeGreaterThan(0))
+    expect(api.callsTo('/api/kpis/cash-flow')[0]!.query.has('propertyId')).toBe(false)
+
+    await user.click(within(section).getByRole('radio', { name: 'Este ano' }))
+    await waitFor(() => {
+      const last = api.callsTo('/api/kpis/cash-flow').at(-1)!
+      expect(last.query.get('from')).toMatch(/-01$/)
+      expect(last.query.get('to')).toMatch(/-12$/)
+    })
+    expect(router.state.location.search).toEqual({})
+  })
+
+  it('leaves the cash flow out when there is no property yet', async () => {
+    fakeApi({
+      session: makeSession(),
+      kpis: makeKpis({ propertyCount: 0, properties: [], propertiesByStatus: { rented: 0, vacant: 0, own_use: 0, loan_for_use: 0 } }),
+    })
+    renderRoute('/app')
+
+    await screen.findByText(/Nenhum imóvel cadastrado ainda/)
+    expect(screen.queryByRole('heading', { name: 'Fluxo de caixa' })).not.toBeInTheDocument()
   })
 
   it('shows no demo notice for a real portfolio', async () => {

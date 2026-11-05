@@ -1,5 +1,6 @@
 import { Clock } from 'lucide-react'
 import type { ActiveOrganization } from '@/features/auth/api/organization'
+import { CashFlowSection } from '@/features/finances/components/cash-flow-section'
 import { formatCompactMoney, formatDate, formatRate, formatTimeUntil } from '@/lib/format'
 import type { PortfolioKpis } from '../api/portfolio-kpis'
 import { PropertiesTable } from './properties-table'
@@ -59,6 +60,8 @@ export function DashboardPage({ kpis, organization }: DashboardPageProps) {
           <StatTile label="Cap rate" value={formatRate(totals.capRate)} hint="NOI sobre o valor que gera renda" />
         </dl>
       </section>
+
+      {kpis.propertyCount > 0 && <CashFlowSection summary={false} className="mt-6" />}
 
       <section aria-labelledby="split-title" className="mt-4 rounded-2xl border bg-card p-5 sm:p-6">
         <h2 id="split-title" className="font-semibold">

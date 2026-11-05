@@ -20,6 +20,8 @@ interface CashFlowSectionProps {
   /** Where the window is kept: in the URL on the Finanças page, in the component's own state elsewhere. */
   window?: FlowWindow
   onWindowChange?: (window: FlowWindow) => void
+  /** The three figures above the chart. Off where the page already leads with its own figures (the dashboard). */
+  summary?: boolean
   className?: string
 }
 
@@ -27,7 +29,7 @@ interface CashFlowSectionProps {
  * Revenue and expenses month by month. The period picker sits above everything it scopes (the three
  * figures and the chart), and while another window loads the previous one stays on screen, dimmed.
  */
-export function CashFlowSection({ propertyId, window: given, onWindowChange, className }: CashFlowSectionProps) {
+export function CashFlowSection({ propertyId, window: given, onWindowChange, summary = true, className }: CashFlowSectionProps) {
   const [own, setOwn] = useState<FlowWindow>('last-12-months')
   const window = given ?? own
   const flow = useQuery(cashFlowQueryOptions(window, propertyId))
@@ -63,24 +65,26 @@ export function CashFlowSection({ propertyId, window: given, onWindowChange, cla
         </div>
       ) : (
         <div aria-busy={flow.isFetching} className={cn('transition-opacity', flow.isPlaceholderData && 'opacity-60')}>
-          <dl className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-3">
-            <StatTile
-              label="Receitas"
-              value={data ? formatCompactMoney(data.totals.revenueCents, { digits: 1 }) : '—'}
-              hint={data ? `${monthAbbreviated(data.from)} a ${monthAbbreviated(data.to)}` : undefined}
-            />
-            <StatTile
-              label="Despesas"
-              value={data ? formatCompactMoney(data.totals.expensesCents, { digits: 1 }) : '—'}
-              hint="Fixas e lançamentos"
-            />
-            <StatTile
-              className="col-span-2 sm:col-span-1"
-              label="Resultado"
-              value={data ? formatCompactMoney(data.totals.netCents, { digits: 1 }) : '—'}
-              hint="Receitas menos despesas"
-            />
-          </dl>
+          {summary && (
+            <dl className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-3">
+              <StatTile
+                label="Receitas"
+                value={data ? formatCompactMoney(data.totals.revenueCents, { digits: 1 }) : '—'}
+                hint={data ? `${monthAbbreviated(data.from)} a ${monthAbbreviated(data.to)}` : undefined}
+              />
+              <StatTile
+                label="Despesas"
+                value={data ? formatCompactMoney(data.totals.expensesCents, { digits: 1 }) : '—'}
+                hint="Fixas e lançamentos"
+              />
+              <StatTile
+                className="col-span-2 sm:col-span-1"
+                label="Resultado"
+                value={data ? formatCompactMoney(data.totals.netCents, { digits: 1 }) : '—'}
+                hint="Receitas menos despesas"
+              />
+            </dl>
+          )}
 
           <div className="mt-4 rounded-2xl border bg-card p-5 sm:p-6">
             <div className="flex flex-wrap items-center justify-between gap-3">
