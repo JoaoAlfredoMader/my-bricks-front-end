@@ -1,18 +1,15 @@
 import { useQuery } from '@tanstack/react-query'
 import { Link } from '@tanstack/react-router'
 import { cn } from 'cn'
-import { Plus, Search } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { Plus } from 'lucide-react'
 import { FilterSelect } from '@/components/filter-select'
 import { Pagination } from '@/components/pagination'
+import { SearchInput } from '@/components/search-input'
 import { Button, buttonVariants } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import { formatArea, formatWholeMoney } from '@/lib/format'
 import { type PropertyFilters, propertiesQueryOptions, propertyCatalogQueryOptions } from '../api/queries'
 import { PROPERTY_TYPE_LABEL, USAGE_LABEL } from '../lib/labels'
 import { StatusBadge } from './status-badge'
-
-const SEARCH_DELAY_MS = 300
 
 interface PropertiesPageProps {
   filters: PropertyFilters
@@ -24,21 +21,6 @@ export function PropertiesPage({ filters, onFiltersChange }: PropertiesPageProps
   const list = useQuery(propertiesQueryOptions(filters))
   const catalog = useQuery(propertyCatalogQueryOptions).data
   const subtypeName = new Map(catalog?.flatMap((entry) => entry.subtypes.map((s) => [s.id, s.name] as const)))
-
-  // The search box answers as you type; the URL (and the request) follows a moment later.
-  const [search, setSearch] = useState(filters.search ?? '')
-  // Follow the URL (back button, "Limpar filtros") without trimming what is being typed.
-  const [urlSearch, setUrlSearch] = useState(filters.search)
-  if (urlSearch !== filters.search) {
-    setUrlSearch(filters.search)
-    if ((search.trim() || undefined) !== filters.search) setSearch(filters.search ?? '')
-  }
-  useEffect(() => {
-    const next = search.trim() || undefined
-    if (next === filters.search) return
-    const timer = setTimeout(() => onFiltersChange({ ...filters, search: next, page: 1 }), SEARCH_DELAY_MS)
-    return () => clearTimeout(timer)
-  }, [search, filters, onFiltersChange])
 
   const filtered = Boolean(filters.search || filters.propertyType || filters.usageType)
   const data = list.data
@@ -59,20 +41,11 @@ export function PropertiesPage({ filters, onFiltersChange }: PropertiesPageProps
       </header>
 
       <div role="search" className="mt-6 grid gap-3 sm:grid-cols-[minmax(0,1fr)_12rem_12rem]">
-        <div className="relative">
-          <Search
-            className="pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-muted-foreground"
-            aria-hidden="true"
-          />
-          <Input
-            type="search"
-            aria-label="Buscar pelo nome"
-            placeholder="Buscar pelo nome"
-            value={search}
-            onChange={(event) => setSearch(event.target.value)}
-            className="h-10 pl-10"
-          />
-        </div>
+        <SearchInput
+          label="Buscar pelo nome"
+          value={filters.search}
+          onSearch={(search) => onFiltersChange({ ...filters, search, page: 1 })}
+        />
         <FilterSelect
           label="Tipo"
           allLabel="Todos os tipos"
