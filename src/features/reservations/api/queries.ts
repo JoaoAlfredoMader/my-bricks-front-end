@@ -1,5 +1,6 @@
 import { keepPreviousData, queryOptions } from '@tanstack/react-query'
 import { api, type Schemas, unwrap } from '@/lib/api/client'
+import { monthBounds } from '../lib/calendar'
 
 export type Reservation = Schemas['Reservation']
 export type ReservationStatus = Reservation['status']
@@ -23,6 +24,21 @@ export function reservationsQueryOptions({ page, status, propertyId }: Reservati
   }
   return queryOptions({
     queryKey: ['reservations', 'list', query],
+    queryFn: () => unwrap(api.GET('/api/reservations', { params: { query } })),
+    placeholderData: keepPreviousData,
+  })
+}
+
+/**
+ * The confirmed stays that touch a month (`from`/`to` is the window [from, to), which is what a
+ * calendar needs). A cancelled stay frees its nights, so it does not show. A hundred is the most the
+ * API gives in a page; `total` says when there were more.
+ */
+export function monthReservationsQueryOptions(month: string) {
+  const { first, next } = monthBounds(month)
+  const query = { from: first, to: next, status: 'confirmed' as const, pageSize: 100 }
+  return queryOptions({
+    queryKey: ['reservations', 'calendar', month],
     queryFn: () => unwrap(api.GET('/api/reservations', { params: { query } })),
     placeholderData: keepPreviousData,
   })
