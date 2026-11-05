@@ -2,15 +2,15 @@ import { Link, type LinkProps } from '@tanstack/react-router'
 import { ArrowLeft } from 'lucide-react'
 import type { ReactNode } from 'react'
 
-interface ContractFormPageProps {
+interface FormPageProps {
   title: string
   description: string
   back: LinkProps
   children: ReactNode
 }
 
-/** The frame around the contract forms, for creating and for editing. */
-export function ContractFormPage({ title, description, back, children }: ContractFormPageProps) {
+/** The frame around a create/edit form: a way back, the title and what the form is for. */
+export function FormPage({ title, description, back, children }: FormPageProps) {
   return (
     <main className="mx-auto max-w-3xl px-4 pt-6 sm:px-8 sm:pt-10">
       <Link {...back} className="inline-flex items-center gap-1.5 rounded-full text-sm text-muted-foreground hover:text-foreground">

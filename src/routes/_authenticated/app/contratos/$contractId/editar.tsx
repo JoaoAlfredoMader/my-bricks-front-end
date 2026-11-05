@@ -2,7 +2,7 @@ import { useSuspenseQuery } from '@tanstack/react-query'
 import { createFileRoute, redirect, useNavigate } from '@tanstack/react-router'
 import { contractQueryOptions } from '@/features/contracts/api/queries'
 import { EditContractForm } from '@/features/contracts/components/contract-form'
-import { ContractFormPage } from '@/features/contracts/components/contract-form-page'
+import { FormPage } from '@/components/form/form-page'
 import { ContractNotFound } from '@/features/contracts/components/contract-not-found'
 import { useUpdateContract } from '@/features/contracts/hooks/use-contract-mutations'
 import { fromContract } from '@/features/contracts/lib/contract-form'
@@ -30,7 +30,7 @@ export function EditContractRoute() {
   const back = { to: '/app/contratos/$contractId', params: { contractId } } as const
 
   return (
-    <ContractFormPage
+    <FormPage
       title={`Editar contrato de ${contract.occupant.name}`}
       description={`${contract.propertyName}. O imóvel, o ocupante e o início não mudam; para trocar, cadastre um novo contrato.`}
       back={back}
@@ -44,6 +44,6 @@ export function EditContractRoute() {
           await navigate(back)
         }}
       />
-    </ContractFormPage>
+    </FormPage>
   )
 }

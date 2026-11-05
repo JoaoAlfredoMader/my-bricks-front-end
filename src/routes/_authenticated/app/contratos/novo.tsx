@@ -3,7 +3,7 @@ import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { z } from 'zod'
 import { propertyOptionsQueryOptions } from '@/features/contracts/api/queries'
 import { NewContractForm } from '@/features/contracts/components/contract-form'
-import { ContractFormPage } from '@/features/contracts/components/contract-form-page'
+import { FormPage } from '@/components/form/form-page'
 import { useCreateContract } from '@/features/contracts/hooks/use-contract-mutations'
 import { emptyNewContract } from '@/features/contracts/lib/contract-form'
 import { takesContracts } from '@/features/contracts/lib/labels'
@@ -26,7 +26,7 @@ export function NewContractRoute() {
     : ({ to: '/app/contratos' } as const)
 
   return (
-    <ContractFormPage
+    <FormPage
       title="Novo contrato"
       description="Se o imóvel já tiver um contrato ativo, ele é encerrado quando este for salvo."
       back={back}
@@ -40,6 +40,6 @@ export function NewContractRoute() {
           await navigate({ to: '/app/contratos/$contractId', params: { contractId: contract.id } })
         }}
       />
-    </ContractFormPage>
+    </FormPage>
   )
 }
